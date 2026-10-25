@@ -2,7 +2,7 @@
 
 Judah Rivera, FDL Lead Developer final assessment, 26 October 2026.
 
-**Hours spent:** HOURS_TBD (debugging challenge and development plan together)
+**Hours spent:** stated in my submission email (debugging challenge and development plan together)
 **AI tools used:** Claude Code (Anthropic). Details in "How I verified the fix and used AI" below.
 
 ## In plain words
@@ -112,5 +112,6 @@ Remaining limitations, by design of the exercise:
 
 ## GitHub / Replit links
 
-- GitHub: GITHUB_URL
+- GitHub: https://github.com/agentxxblue14/fdl-final-assessment
+- Interactive version: https://agentxxblue14.github.io/fdl-final-assessment/
 - Replit: not used for this part. The challenge says to work only on the supplied files, and it runs with plain Python (`python -m unittest -v`), no packages needed.
