@@ -3,11 +3,13 @@ Why the fix uses Decimal instead of only correcting the formulas
 A version with only the formulas and validation fixed, still using float math and
 Python's round(), was run against the same test suite. Command: python -m unittest
 
-Result: FAILED (failures=117)
+Result: FAILED (failures=120, errors=1)
   116 failing checks in test_displayed_fields_always_add_up
       (out of 500 random loads, the displayed total_cost was not equal to the sum of the
        displayed cost lines, or the displayed profit was not revenue minus displayed total)
     1 failing check in test_half_cent_rounds_up
       (10% of $1.25 = $0.125 was shown as $0.12)
+    3 failing checks in test_huge_values_are_rejected_not_crashed
+    1 failing check in test_negative_zero_is_treated_as_zero
 
-The submitted profitability.py passes all 29 tests, including both of these.
+The submitted profitability.py passes all 32 tests, including these.

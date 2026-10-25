@@ -15,8 +15,11 @@ test_float_inputs_do_not_leak_binary_error (test_edge_cases.RoundingTests.test_f
 test_half_cent_rounds_up (test_edge_cases.RoundingTests.test_half_cent_rounds_up) ... ok
 test_dispatch_plus_margin_must_be_below_100 (test_edge_cases.ValidationTests.test_dispatch_plus_margin_must_be_below_100) ... ok
 test_each_money_field_and_miles_must_be_nonnegative (test_edge_cases.ValidationTests.test_each_money_field_and_miles_must_be_nonnegative) ... ok
+test_huge_values_are_rejected_not_crashed (test_edge_cases.ValidationTests.test_huge_values_are_rejected_not_crashed) ... ok
+test_large_realistic_values_still_work (test_edge_cases.ValidationTests.test_large_realistic_values_still_work) ... ok
 test_mpg_must_be_above_zero (test_edge_cases.ValidationTests.test_mpg_must_be_above_zero) ... ok
 test_nan_and_infinity_are_rejected (test_edge_cases.ValidationTests.test_nan_and_infinity_are_rejected) ... ok
+test_negative_zero_is_treated_as_zero (test_edge_cases.ValidationTests.test_negative_zero_is_treated_as_zero) ... ok
 test_non_numbers_are_rejected_with_value_error (test_edge_cases.ValidationTests.test_non_numbers_are_rejected_with_value_error) ... ok
 test_percentages_must_be_0_to_below_100 (test_edge_cases.ValidationTests.test_percentages_must_be_0_to_below_100) ... ok
 test_zero_values_that_are_allowed (test_edge_cases.ValidationTests.test_zero_values_that_are_allowed) ... ok
@@ -29,7 +32,7 @@ test_zero_mpg_rejected (test_profitability.ProfitabilityTests.test_zero_mpg_reje
 test_zero_revenue_margin (test_profitability.ProfitabilityTests.test_zero_revenue_margin) ... ok
 
 ----------------------------------------------------------------------
-Ran 29 tests in 0.058s
+Ran 32 tests in 0.064s
 
 OK
 exit 0

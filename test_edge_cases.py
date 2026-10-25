@@ -174,6 +174,22 @@ class ValidationTests(unittest.TestCase):
             with self.subTest(value=bad):
                 self.assertRejected(revenue=bad)
 
+    def test_negative_zero_is_treated_as_zero(self):
+        r = calc(revenue=-0.0, miles=-0.0, driver_pay=Decimal("-0"), tolls=0, other_expenses=0)
+        for name in ("fuel_cost", "dispatch_fee", "profit"):
+            with self.subTest(field=name):
+                self.assertEqual(math.copysign(1, r[name]), 1.0)  # +0.0, never -0.0
+
+    def test_huge_values_are_rejected_not_crashed(self):
+        # Finite but absurd values must give ValueError, not decimal.InvalidOperation.
+        for changes in ({"revenue": 1e60}, {"mpg": 1e-60}, {"driver_pay": 10 ** 60}):
+            with self.subTest(changes=changes):
+                self.assertRejected(**changes)
+
+    def test_large_realistic_values_still_work(self):
+        r = calc(revenue=1_000_000_000, driver_pay=250_000.55)
+        self.assertEqual(r["dispatch_fee"], 100_000_000.00)
+
     def test_zero_values_that_are_allowed(self):
         r = calc(miles=0, fuel_price=0, driver_pay=0, tolls=0, other_expenses=0,
                  dispatch_pct=0, desired_margin_pct=0)
