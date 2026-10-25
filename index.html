@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building the FDL Platform</title>
+<meta name="description" content="Judah Rivera's FDL Lead Developer final assessment: the broken calculator fixed, and the full platform plan, timeline and cost estimate.">
+<style>
+:root {
+  --ink: #17232f; --muted: #5d6a77; --line: #d8dee6; --sky: #e3eff8; --road: #3b444e; --lane: #f4c430;
+  --sign: #1d6b48; --blue: #2a6f9e; --amber: #e39b2d; --red: #c4473a; --green: #2f8a57; --paper: #fff;
+  --ground: #f5f7f9; --night: #14202b; --m1: #2a6f9e; --m2: #2f8a57; --m3: #e39b2d; --m4: #b8742a; --m5: #c4473a;
+  --head: Bahnschrift, "DIN Alternate", "DIN Condensed", "Segoe UI", system-ui, sans-serif;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --wrap: 1160px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 17px/1.55 var(--body); overflow-x: hidden; }
+h1, h2, h3, .num, .tab, nav { font-family: var(--head); }
+h2 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; margin: 0 0 14px; letter-spacing: -.01em; }
+h3 { font-size: 21px; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+a { color: var(--blue); }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+section { padding: 96px 0; position: relative; }
+.lede { font-size: 19px; max-width: 46em; color: #2c3a47; }
+.small { font-size: 14px; color: var(--muted); }
+.stripe { width: 132px; height: 5px; margin: 0 0 22px;
+  background: repeating-linear-gradient(90deg, var(--lane) 0 22px, transparent 22px 34px); }
+svg text { font-family: var(--body); }
+
+/* nav */
+nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; gap: 22px; align-items: center; height: 54px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+nav b { font-size: 16px; margin-right: auto; }
+nav a { color: var(--ink); text-decoration: none; font-size: 15px; opacity: .75; }
+nav a:hover { opacity: 1; }
+
+/* hero */
+.hero { padding: 72px 0 0; background: linear-gradient(#cfe4f3, #f4f9fd 70%); overflow: hidden; }
+.who { font: 600 16px var(--head); color: var(--muted); margin-bottom: 14px; }
+.mask-title { position: relative; display: inline-block; font-size: clamp(48px, 9.5vw, 124px); line-height: .98;
+  margin: 0 0 22px; letter-spacing: -.02em; }
+.mask-title span { display: block; }
+.mask-title .outline { color: transparent; -webkit-text-stroke: 1.6px var(--ink); }
+.mask-title .fill { position: absolute; inset: 0; background: linear-gradient(180deg, #1d4f73 0%, var(--ink) 75%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mask-title .edge { position: absolute; left: -10px; right: -10px; height: 2px; background: var(--lane); }
+.mask-title .edge::before { content: ""; position: absolute; left: 0; top: -4px; width: 10px; height: 10px; background: var(--lane); }
+.cutline { overflow: hidden; }
+.cutline p { font-size: clamp(18px, 2.2vw, 23px); max-width: 34em; margin: 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 18px 48px; margin: 34px 0 10px; }
+.stat .num { font-size: clamp(30px, 4vw, 44px); font-weight: 700; line-height: 1.05; display: block; }
+.stat span { font-size: 15px; color: var(--muted); }
+.hero-road { display: block; width: 100%; height: auto; margin-top: 28px; }
+
+/* cards and tabs */
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 26px; }
+.tabs { position: relative; display: inline-flex; background: #eef2f6; border-radius: 12px; padding: 5px; margin-bottom: 18px; }
+.tab { position: relative; z-index: 1; border: 0; background: none; font-size: 16px; font-weight: 600; padding: 10px 18px;
+  cursor: pointer; color: var(--muted); border-radius: 9px; }
+.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pill { position: absolute; top: 5px; bottom: 5px; background: var(--ink); border-radius: 9px; }
+.speed { position: absolute; height: 2px; background: var(--ink); opacity: 0; }
+
+/* part 1 */
+.bug-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; align-items: start; }
+.ring-card { text-align: center; }
+.bug-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 36px; margin-top: 30px; }
+.bug-list div { padding: 14px 0; border-top: 1px solid var(--line); }
+.bug-list b { font-family: var(--head); font-size: 17px; }
+.bug-list .id { display: inline-block; min-width: 34px; color: var(--red); font-family: var(--head); font-weight: 700; }
+
+/* glance band */
+.band { background: var(--night); color: #fff; }
+.band .lede, .band .small { color: #b9c6d2; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 30px; }
+.kpi { border-top: 3px solid var(--lane); padding-top: 14px; }
+.kpi .num { font-size: clamp(30px, 3.6vw, 42px); font-weight: 700; display: block; line-height: 1.1; }
+.kpi span { color: #b9c6d2; font-size: 15px; }
+
+/* timeline */
+.tl-grid { display: grid; grid-template-columns: 1fr 270px; gap: 22px; }
+.scroll-x { overflow-x: auto; }
+.scroll-x svg { min-width: 720px; }
+.side h3 { font-size: 30px; margin-bottom: 4px; }
+.side .num { font-size: 34px; font-weight: 700; }
+.side dl { margin: 14px 0 0; }
+.side dt { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.side dd { margin: 0; font: 600 19px var(--head); }
+.swap { will-change: transform, opacity; }
+
+/* hours */
+.hours-grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin: 6px 0 10px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+#tip { position: fixed; z-index: 30; pointer-events: none; background: var(--ink); color: #fff; font-size: 14px; line-height: 1.4;
+  padding: 10px 12px; border-radius: 10px; max-width: 280px; opacity: 0; transition: opacity .12s; }
+#tip b { font-family: var(--head); font-size: 15px; }
+
+.figure svg { width: 100%; height: auto; display: block; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.sky { background: linear-gradient(#e3eff8, #f5f7f9); }
+ol.qs { padding-left: 22px; } ol.qs li { margin: 8px 0; }
+footer { background: var(--night); color: #b9c6d2; padding: 56px 0; font-size: 15px; }
+footer a { color: #fff; }
+footer b { color: #fff; font-family: var(--head); font-size: 20px; }
+
+.bug-grid > *, .tl-grid > *, .hours-grid > *, .two > * { min-width: 0; }
+@media (max-width: 860px) {
+  .card:has(> #bugChart), .card:has(> #ws), .card:has(> svg[id^="cost"]), .figure { overflow-x: auto; }
+  #bugChart { min-width: 560px; } #ws { min-width: 640px; } svg[id^="cost"] { min-width: 520px; }
+  #costOne { min-width: 760px; } .figure svg { min-width: 680px; }
+  .hero-road { width: 820px; max-width: none; }
+  section { padding: 64px 0; }
+  .wrap { padding: 0 16px; }
+  .bug-grid, .tl-grid, .hours-grid, .two, .bug-list { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  nav a { display: none; }
+  .card { padding: 18px; }
+}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><b>FDL final assessment</b>
+  <a href="#fix">Bug fix</a><a href="#timeline">Timeline</a><a href="#hours">Hours</a><a href="#team">Team</a>
+  <a href="#release">Releases</a><a href="#costs">Costs</a><a href="#risks">Risks</a></div></nav>
+
+<header class="hero" id="hero">
+  <div class="wrap">
+    <div class="who">Judah Rivera, Lead Developer final assessment, 26 October 2026</div>
+    <h1 class="mask-title" aria-label="Building the FDL platform">
+      <span class="outline" aria-hidden="true">Building the<br>FDL platform</span>
+      <span class="fill" aria-hidden="true">Building the<br>FDL platform</span>
+      <i class="edge" aria-hidden="true"></i>
+    </h1>
+    <div class="cutline"><p id="heroSub">The broken load calculator fixed, and a full plan for the platform: how many hours, how long, who does what and what it costs.</p></div>
+    <div class="stats">
+      <div class="stat"><b class="num" data-count="hours">0</b><span>hours to build everything, realistic</span></div>
+      <div class="stat"><b class="num" id="statV1"></b><span>version 1 for outside companies</span></div>
+      <div class="stat"><b class="num" id="statFull"></b><span>full platform with apps and AI</span></div>
+    </div>
+  </div>
+  <svg class="hero-road" viewBox="0 0 1200 230" role="img" aria-label="A car-hauler truck driving past the five milestone signs">
+    <path d="M0 150 Q160 96 330 122 T700 112 T1020 104 T1200 118 V150 H0 Z" fill="#cfe3d4"/>
+    <g class="hero-sign" data-x="300"><rect x="298" y="100" width="4" height="50" fill="#8a939c"/><rect x="250.0" y="58" width="100" height="44" rx="6" fill="#1d6b48"/><rect x="253.0" y="61" width="94" height="38" rx="4" fill="none" stroke="#fff" stroke-width="1.3"/><text x="300" y="77" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" >M1 Pilot</text><text x="300" y="92" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#fff" text-anchor="middle" >30 Apr 2027</text></g><g class="hero-sign" data-x="495"><rect x="493" y="78" width="4" height="72" fill="#8a939c"/><rect x="445.0" y="36" width="100" height="44" rx="6" fill="#1d6b48"/><rect x="448.0" y="39" width="94" height="38" rx="4" fill="none" stroke="#fff" stroke-width="1.3"/><text x="495" y="55" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" >M2 Version 1</text><text x="495" y="70" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#fff" text-anchor="middle" >12 Nov 2027</text></g><g class="hero-sign" data-x="690"><rect x="688" y="100" width="4" height="50" fill="#8a939c"/><rect x="640.0" y="58" width="100" height="44" rx="6" fill="#1d6b48"/><rect x="643.0" y="61" width="94" height="38" rx="4" fill="none" stroke="#fff" stroke-width="1.3"/><text x="690" y="77" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" >M3 Tracking</text><text x="690" y="92" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#fff" text-anchor="middle" >4 Feb 2028</text></g><g class="hero-sign" data-x="885"><rect x="883" y="78" width="4" height="72" fill="#8a939c"/><rect x="835.0" y="36" width="100" height="44" rx="6" fill="#1d6b48"/><rect x="838.0" y="39" width="94" height="38" rx="4" fill="none" stroke="#fff" stroke-width="1.3"/><text x="885" y="55" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" >M4 Back office</text><text x="885" y="70" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#fff" text-anchor="middle" >16 Jun 2028</text></g><g class="hero-sign" data-x="1080"><rect x="1078" y="100" width="4" height="50" fill="#8a939c"/><rect x="1024.0" y="58" width="112" height="44" rx="6" fill="#1d6b48"/><rect x="1027.0" y="61" width="106" height="38" rx="4" fill="none" stroke="#fff" stroke-width="1.3"/><text x="1080" y="77" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#fff" text-anchor="middle" >M5 Full platform</text><text x="1080" y="92" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#fff" text-anchor="middle" >20 Oct 2028</text></g>
+    <rect x="1149" y="98" width="3" height="52" fill="#17232f"/><rect x="1152" y="98" width="7" height="7" fill="#17232f"/><rect x="1159" y="98" width="7" height="7" fill="#fff"/><rect x="1166" y="98" width="7" height="7" fill="#17232f"/><rect x="1173" y="98" width="7" height="7" fill="#fff"/><rect x="1152" y="105" width="7" height="7" fill="#fff"/><rect x="1159" y="105" width="7" height="7" fill="#17232f"/><rect x="1166" y="105" width="7" height="7" fill="#fff"/><rect x="1173" y="105" width="7" height="7" fill="#17232f"/><rect x="1152" y="112" width="7" height="7" fill="#17232f"/><rect x="1159" y="112" width="7" height="7" fill="#fff"/><rect x="1166" y="112" width="7" height="7" fill="#17232f"/><rect x="1173" y="112" width="7" height="7" fill="#fff"/><rect x="1152" y="98" width="28" height="21" fill="none" stroke="#17232f" stroke-width="1"/>
+    <rect x="0" y="150" width="1200" height="64" fill="#3b444e"/>
+    <rect x="0" y="153" width="1200" height="1.5" fill="#e9edf1"/><rect x="0" y="209" width="1200" height="1.5" fill="#e9edf1"/>
+    <line x1="0" y1="182" x2="1200" y2="182" stroke="#f4c430" stroke-width="3" stroke-dasharray="22 16"/>
+    <g id="heroTruck"><g transform="translate(0 196) scale(0.9)"><rect x="0" y="-55" width="162" height="4" rx="1" fill="#5b6570"/><rect x="0" y="-24" width="162" height="5" rx="1" fill="#5b6570"/><rect x="4" y="-55" width="3" height="34" fill="#5b6570"/><rect x="56" y="-55" width="3" height="34" fill="#5b6570"/><rect x="108" y="-55" width="3" height="34" fill="#5b6570"/><rect x="158" y="-55" width="3" height="34" fill="#5b6570"/><g transform="translate(10 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#d9534f"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#d9534f"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(60 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#f2f4f6"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#f2f4f6"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(110 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#e39b2d"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#e39b2d"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(10 -24) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#7aa7c7"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#7aa7c7"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(60 -24) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#4d5a66"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#4d5a66"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><rect x="96" y="-19" width="136" height="6" fill="#2d343b"/><path d="M162 -55 L174 -55 L174 -40 L162 -40 Z" fill="#5b6570"/><rect x="168" y="-50" width="44" height="37" rx="5" fill="#2a6f9e"/><rect x="200" y="-33" width="30" height="20" rx="4" fill="#2a6f9e"/><path d="M175 -45 L198 -45 L206 -32 L175 -32 Z" fill="#cfe4f2"/><rect x="226" y="-17" width="8" height="5" rx="1" fill="#9aa3ab"/><circle cx="227" cy="-27" r="2.6" fill="#ffd76a"/><rect x="172" y="-62" width="4" height="13" rx="1" fill="#9aa3ab"/><circle cx="120" cy="-9" r="9" fill="#1f252b"/><circle cx="120" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="142" cy="-9" r="9" fill="#1f252b"/><circle cx="142" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="182" cy="-9" r="9" fill="#1f252b"/><circle cx="182" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="214" cy="-9" r="9" fill="#1f252b"/><circle cx="214" cy="-9" r="3.8" fill="#b9c2ca"/></g></g>
+    <rect x="0" y="214" width="1200" height="16" fill="#9fc9a8"/>
+  </svg>
+</header>
+
+<section id="fix">
+  <div class="wrap">
+    <h2>Part 1: the broken calculator, fixed</h2>
+    <div class="stripe"></div>
+    <p class="lede">Same load, same inputs, from the README: revenue $2,000, 500 miles, $4 fuel, 10 mpg, $400 driver pay, $50 tolls, 10% dispatch, $100 other costs, 20% target margin. The original code made fuel and the dispatch fee 100 times too high, so a profitable load looked like a big loss.</p>
+    <div class="bug-grid">
+      <div class="card">
+        <div class="tabs" role="tablist" id="bugTabs"><span class="pill"></span>
+          <button class="tab" role="tab" data-i="0">Original code</button><button class="tab" role="tab" data-i="1">Fixed code</button></div>
+        <svg id="bugChart" viewBox="0 0 640 330" role="img" aria-label="Calculator output before and after the fix"></svg>
+      </div>
+      <div class="card ring-card">
+        <h3>Tests passing</h3>
+        <svg id="ring" viewBox="0 0 240 240" width="220" height="220" role="img" aria-label="Tests passing: 1 of 5 before, 32 of 32 after"></svg>
+        <p class="small">Before: 5 tests, 1 passing, and that one by accident. After: 32 tests, all passing on Python 3.10 to 3.13. Your expected values were not changed.</p>
+      </div>
+    </div>
+    <div class="bug-list">
+      <div><span class="id">D1</span><b>Fuel</b> multiplied miles by mpg instead of dividing: $20,000 instead of $200.</div>
+      <div><span class="id">D2</span><b>Dispatch fee</b> treated 10% as 1000%: $20,000 instead of $200.</div>
+      <div><span class="id">D3</span><b>Margin</b> was measured against cost, not revenue, and crashed on a zero load.</div>
+      <div><span class="id">D4</span><b>Break-even rate</b> ignored the dispatch fee: $750 instead of $833.33.</div>
+      <div><span class="id">D5</span><b>Suggested rate</b> stacked the percentages and gave 18% margin, not 20%.</div>
+      <div><span class="id">D6</span><b>Input checks</b> let 0 mpg, negative costs, text and infinity through.</div>
+    </div>
+    <p class="small" style="margin-top:18px">Root causes, the rounding change and all test evidence: <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/SUBMISSION.md">SUBMISSION.md</a>.</p>
+  </div>
+</section>
+
+<section class="band" id="glance">
+  <div class="wrap">
+    <h2>Part 2: the platform plan, at a glance</h2>
+    <div class="stripe"></div>
+    <p class="lede">Every number on this page comes from one script, <a style="color:#fff" href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/plan/estimate_model.py">estimate_model.py</a>. Change an assumption and the hours, dates and costs move together.</p>
+    <div class="kpis" id="kpis">
+      <div class="kpi"><b class="num" data-count="hours">0</b><span>hours, realistic (range <span id="hRange"></span>)</span></div>
+      <div class="kpi"><b class="num" id="kPilot"></b><span>internal pilot on the owner's own company</span></div>
+      <div class="kpi"><b class="num" id="kV1"></b><span>version 1 outside companies can buy</span></div>
+      <div class="kpi"><b class="num" id="kBuild"></b><span>a month in tools while building, salaries not included</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <h2>Three possible roads to the full platform</h2>
+    <div class="stripe"></div>
+    <p class="lede">Nine phases, five milestones. The realistic case assumes a start on <span id="startDate"></span> with a Lead Developer, a Technical Assistant and a mobile contractor for the native apps. Pick a scenario.</p>
+    <div class="tl-grid">
+      <div class="card">
+        <div class="tabs" role="tablist" id="scTabs"><span class="pill"></span>
+          <button class="tab" role="tab" data-i="0">Realistic</button><button class="tab" role="tab" data-i="1">Optimistic</button><button class="tab" role="tab" data-i="2">Conservative</button></div>
+        <div class="scroll-x"><svg id="gantt" viewBox="0 0 900 380" role="img" aria-label="Phase timeline for the selected scenario"></svg></div>
+      </div>
+      <div class="card side" id="scSide"><div class="swap">
+        <h3 id="scName"></h3><p class="small" id="scNote"></p>
+        <dl><dt>Total hours</dt><dd id="scHours"></dd><dt>Internal pilot (M1)</dt><dd id="scM1"></dd>
+          <dt>Version 1 (M2)</dt><dd id="scM2"></dd><dt>Full platform (M5)</dt><dd id="scM5"></dd></dl></div>
+        <p class="small" style="margin-top:18px">A second developer from M2 brings the realistic finish forward by about 13 weeks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sky" id="hours">
+  <div class="wrap">
+    <h2>Where the hours go</h2>
+    <div class="stripe"></div>
+    <p class="lede">25 workstreams, each estimated low, likely and high. The Lead keeps security, money rules and integrations; the Technical Assistant builds screens, forms and tests from small tickets.</p>
+    <div class="hours-grid">
+      <div class="card"><h3>Who does the hours</h3><svg id="donut" viewBox="0 0 300 300" role="img" aria-label="Realistic hours by person"></svg>
+        <div class="legend" id="donutLegend"></div></div>
+      <div class="card"><h3>Hours by workstream</h3>
+        <div class="legend" id="wsLegend"></div>
+        <svg id="ws" viewBox="0 0 760 640" role="img" aria-label="Low, likely and high hours for each of the 25 workstreams"></svg>
+        <p class="small">Bar = low to high estimate, dot = likely. Hover a row for details.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <h2>Who does what</h2>
+    <div class="stripe"></div>
+    <p class="lede">The owner owns every account and approves every release. The Lead builds the hard and risky parts and reviews all code. The TA works from half-day tickets with acceptance criteria and has no production access.</p>
+    <div class="card figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 330" width="1000" height="330" role="img" aria-label="Who does what: owner, Lead, Technical Assistant and mobile contractor"><title>Who does what: owner, Lead, Technical Assistant and mobile contractor</title><rect width="1000" height="330" rx="14" fill="#ffffff"/><ellipse cx="125" cy="168" rx="70" ry="10" fill="#e3eff8"/><g transform="translate(125 166) scale(1.45)"><rect x="-12" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><rect x="2" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><path d="M-17 -16 L-17 -44 Q-17 -52 -9 -52 L9 -52 Q17 -52 17 -44 L17 -16 Z" fill="#6b5b95"/><rect x="-4" y="-57" width="8" height="7" fill="#f1c9a5"/><circle cx="0" cy="-66" r="11" fill="#f1c9a5"/><path d="M-11 -67 Q-11 -79 0 -79 Q11 -79 11 -67 Q6 -73 -2 -72 Q-8 -71 -11 -67 Z" fill="#2b2320"/></g><rect x="135" y="92" width="24" height="31" rx="2" fill="#b08a62"/><rect x="138" y="97" width="18" height="23" fill="#fff"/><path d="M141 103 H153 M141 108 H153 M141 113 H149" stroke="#5d6a77" stroke-width="1.4"/><text x="125" y="200" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="middle" >Owner</text><text x="125" y="218" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="middle" >owns every account</text><circle cx="65.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(65.0 256) scale(1.00)"><circle cx="-5" cy="0" r="5" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 0 H10 M6 0 V4 M9 0 V3" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="65.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >All</text><text x="65.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >accounts</text><circle cx="125.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(125.0 256) scale(1.00)"><path d="M-8 0 L-2 6 L9 -7" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="125.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Approves</text><text x="125.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >releases</text><circle cx="185.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(185.0 256) scale(1.00)"><path d="M-6 11 V-10 M-6 -9 H8 L4 -4 L8 1 H-6" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="185.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Sets</text><text x="185.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >priorities</text><line x1="250" y1="40" x2="250" y2="310" stroke="#d8dee6" stroke-width="1.2"/><ellipse cx="375" cy="168" rx="70" ry="10" fill="#e3eff8"/><g transform="translate(375 166) scale(1.45)"><rect x="-12" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><rect x="2" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><path d="M-17 -16 L-17 -44 Q-17 -52 -9 -52 L9 -52 Q17 -52 17 -44 L17 -16 Z" fill="#2a6f9e"/><rect x="-4" y="-57" width="8" height="7" fill="#c98e64"/><circle cx="0" cy="-66" r="11" fill="#c98e64"/><path d="M-11 -67 Q-11 -79 0 -79 Q11 -79 11 -67 Q6 -73 -2 -72 Q-8 -71 -11 -67 Z" fill="#2b2320"/></g><rect x="325" y="140" width="100" height="10" rx="3" fill="#b08a62"/><rect x="331" y="150" width="6" height="18" fill="#8d6d4c"/><rect x="413" y="150" width="6" height="18" fill="#8d6d4c"/><g transform="translate(375 140) scale(1.1)"><path d="M-16 0 L-12 -20 L12 -20 L16 0 Z" fill="#cfd6dd"/><path d="M-10 -18 L10 -18 L13 -3 L-13 -3 Z" fill="#7aa7c7"/><rect x="-20" y="0" width="40" height="3" rx="1.5" fill="#9aa3ab"/></g><text x="375" y="200" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="middle" >Lead Developer</text><text x="375" y="218" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="middle" >the hard and risky parts</text><circle cx="285.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(285.0 256) scale(1.00)"><path d="M0 -10 L8 -7 L8 0 Q8 7 0 11 Q-8 7 -8 0 L-8 -7 Z" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-3.5 0 L-1 3 L4 -3" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="285.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Security</text><circle cx="345.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(345.0 256) scale(1.00)"><ellipse cx="0" cy="-6" rx="8" ry="3" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-8 -6 V6 Q0 10 8 6 V-6 M-8 0 Q0 4 8 0" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="345.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Money</text><text x="345.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >rules</text><circle cx="405.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(405.0 256) scale(1.00)"><path d="M-4 -11 V-5 M4 -11 V-5 M-7 -5 H7 V0 Q7 6 0 6 Q-7 6 -7 0 Z M0 6 V11" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="405.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Outside</text><text x="405.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >systems</text><circle cx="465.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(465.0 256) scale(1.00)"><circle cx="-2" cy="-2" r="6.5" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3 L9 9" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="465.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Reviews</text><text x="465.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >all code</text><line x1="500" y1="40" x2="500" y2="310" stroke="#d8dee6" stroke-width="1.2"/><ellipse cx="625" cy="168" rx="70" ry="10" fill="#e3eff8"/><g transform="translate(625 166) scale(1.45)"><rect x="-12" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><rect x="2" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><path d="M-17 -16 L-17 -44 Q-17 -52 -9 -52 L9 -52 Q17 -52 17 -44 L17 -16 Z" fill="#2f8a57"/><rect x="-4" y="-57" width="8" height="7" fill="#e9b98f"/><circle cx="0" cy="-66" r="11" fill="#e9b98f"/><path d="M-11 -67 Q-11 -79 0 -79 Q11 -79 11 -67 Q6 -73 -2 -72 Q-8 -71 -11 -67 Z" fill="#2b2320"/></g><rect x="575" y="140" width="100" height="10" rx="3" fill="#b08a62"/><rect x="581" y="150" width="6" height="18" fill="#8d6d4c"/><rect x="663" y="150" width="6" height="18" fill="#8d6d4c"/><g transform="translate(625 140) scale(1.1)"><path d="M-16 0 L-12 -20 L12 -20 L16 0 Z" fill="#cfd6dd"/><path d="M-10 -18 L10 -18 L13 -3 L-13 -3 Z" fill="#7aa7c7"/><rect x="-20" y="0" width="40" height="3" rx="1.5" fill="#9aa3ab"/></g><text x="625" y="200" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="middle" >Technical Assistant</text><text x="625" y="218" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="middle" >builds from small tickets</text><circle cx="565.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(565.0 256) scale(1.00)"><rect x="-10" y="-8" width="20" height="13" rx="1.5" fill="none" stroke="#2f8a57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-4 10 H4 M0 5 V10" fill="none" stroke="#2f8a57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="565.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Screens</text><text x="565.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >and forms</text><circle cx="625.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(625.0 256) scale(1.00)"><path d="M-9 -7 L-7 -5 L-4 -9 M-9 1 L-7 3 L-4 -1 M-9 9 L-7 11 L-4 7 M0 -7 H9 M0 1 H9 M0 9 H9" fill="none" stroke="#2f8a57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="625.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Tests</text><text x="625.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >and QA</text><circle cx="685.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(685.0 256) scale(1.00)"><path d="M-10 -6 H10 V-2 Q7 0 10 2 V6 H-10 V2 Q-7 0 -10 -2 Z M-3 -6 V6" fill="none" stroke="#2f8a57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="685.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Small</text><text x="685.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >tickets</text><line x1="750" y1="40" x2="750" y2="310" stroke="#d8dee6" stroke-width="1.2"/><ellipse cx="875" cy="168" rx="70" ry="10" fill="#e3eff8"/><g transform="translate(875 166) scale(1.45)"><rect x="-12" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><rect x="2" y="-16" width="10" height="16" rx="3" fill="#2f3a45"/><path d="M-17 -16 L-17 -44 Q-17 -52 -9 -52 L9 -52 Q17 -52 17 -44 L17 -16 Z" fill="#e39b2d"/><rect x="-4" y="-57" width="8" height="7" fill="#a8724b"/><circle cx="0" cy="-66" r="11" fill="#a8724b"/><path d="M-11 -67 Q-11 -79 0 -79 Q11 -79 11 -67 Q6 -73 -2 -72 Q-8 -71 -11 -67 Z" fill="#2b2320"/></g><rect x="889" y="88" width="15" height="26" rx="3" fill="#17232f"/><rect x="891" y="91" width="11" height="18" rx="1" fill="#7aa7c7"/><text x="875" y="200" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="middle" >Mobile contractor</text><text x="875" y="218" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="middle" >native apps, phases 5 to 7</text><circle cx="845.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(845.0 256) scale(1.00)"><rect x="-6" y="-11" width="12" height="22" rx="2.5" fill="none" stroke="#e39b2d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-2 7 H2" fill="none" stroke="#e39b2d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="845.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >iOS and</text><text x="845.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Android</text><circle cx="905.0" cy="256" r="17" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(905.0 256) scale(1.00)"><circle cx="-2" cy="-2" r="6.5" fill="none" stroke="#e39b2d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3 L9 9" fill="none" stroke="#e39b2d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="905.0" y="290" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >Lead</text><text x="905.0" y="304" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="400" fill="#17232f" text-anchor="middle" >reviews</text></svg></div>
+  </div>
+</section>
+
+<section class="sky" id="release">
+  <div class="wrap">
+    <h2>Nothing reaches production by accident</h2>
+    <div class="stripe"></div>
+    <p class="lede">Protected main branch, automated tests, a human review of every change, and the owner's yes on the release notes. Backups before every database change, and an audit log of who changed what.</p>
+    <div class="card figure" id="gates"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 292" width="1000" height="292" role="img" aria-label="Release gates: pull request, tests, Lead review, owner approval, then production"><title>Release gates: pull request, tests, Lead review, owner approval, then production</title><rect width="1000" height="292" rx="14" fill="#ffffff"/><text x="24" y="32" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#17232f" text-anchor="start" >Every change passes four gates before it reaches production</text><rect x="0" y="172" width="1000" height="34" fill="#3b444e"/><rect x="0" y="174" width="1000" height="1.5" fill="#e9edf1"/><rect x="0" y="202.5" width="1000" height="1.5" fill="#e9edf1"/><line x1="0" y1="189.0" x2="1000" y2="189.0" stroke="#f4c430" stroke-width="2.5" stroke-dasharray="16 11"/><g class="gate-truck"><g transform="translate(8 198) scale(0.38)"><rect x="0" y="-55" width="162" height="4" rx="1" fill="#5b6570"/><rect x="0" y="-24" width="162" height="5" rx="1" fill="#5b6570"/><rect x="4" y="-55" width="3" height="34" fill="#5b6570"/><rect x="56" y="-55" width="3" height="34" fill="#5b6570"/><rect x="108" y="-55" width="3" height="34" fill="#5b6570"/><rect x="158" y="-55" width="3" height="34" fill="#5b6570"/><g transform="translate(10 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#d9534f"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#d9534f"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(60 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#f2f4f6"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#f2f4f6"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(110 -55) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#e39b2d"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#e39b2d"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(10 -24) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#7aa7c7"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#7aa7c7"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><g transform="translate(60 -24) scale(1.05)"><rect x="0" y="-13" width="40" height="8" rx="3" fill="#4d5a66"/><path d="M8 -13 L13.5 -19.5 L27 -19.5 L32.5 -13 Z" fill="#4d5a66"/><path d="M14.5 -18.5 L19.5 -18.5 L19.5 -13.8 L11 -13.8 Z M21 -18.5 L26.3 -18.5 L30.2 -13.8 L21 -13.8 Z" fill="#dbeefa"/><circle cx="9.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="9.5" cy="-4.5" r="1.7" fill="#b9c2ca"/><circle cx="30.5" cy="-4.5" r="4.3" fill="#1f252b"/><circle cx="30.5" cy="-4.5" r="1.7" fill="#b9c2ca"/></g><rect x="96" y="-19" width="136" height="6" fill="#2d343b"/><path d="M162 -55 L174 -55 L174 -40 L162 -40 Z" fill="#5b6570"/><rect x="168" y="-50" width="44" height="37" rx="5" fill="#2a6f9e"/><rect x="200" y="-33" width="30" height="20" rx="4" fill="#2a6f9e"/><path d="M175 -45 L198 -45 L206 -32 L175 -32 Z" fill="#cfe4f2"/><rect x="226" y="-17" width="8" height="5" rx="1" fill="#9aa3ab"/><circle cx="227" cy="-27" r="2.6" fill="#ffd76a"/><rect x="172" y="-62" width="4" height="13" rx="1" fill="#9aa3ab"/><circle cx="120" cy="-9" r="9" fill="#1f252b"/><circle cx="120" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="142" cy="-9" r="9" fill="#1f252b"/><circle cx="142" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="182" cy="-9" r="9" fill="#1f252b"/><circle cx="182" cy="-9" r="3.8" fill="#b9c2ca"/><circle cx="214" cy="-9" r="9" fill="#1f252b"/><circle cx="214" cy="-9" r="3.8" fill="#b9c2ca"/></g></g><rect x="241" y="132" width="18" height="40" rx="3" fill="#17232f"/><circle cx="250" cy="138" r="3" fill="#f4c430"/><g class="gate-arm" data-x="250" data-y="138" transform="rotate(-62 250 138)"><rect x="256" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="270" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="284" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="298" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="312" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="326" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/></g><circle cx="212" cy="150" r="18" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(212 150) scale(1.06)"><circle cx="-5" cy="-8" r="2.6" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="-5" cy="8" r="2.6" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="8" r="2.6" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-5 -5.4 V5.4 M6 5.4 V-2 Q6 -6 2 -6 H-1" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="250" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >Pull request</text><text x="250" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >no direct pushes</text><rect x="411" y="132" width="18" height="40" rx="3" fill="#17232f"/><circle cx="420" cy="138" r="3" fill="#f4c430"/><g class="gate-arm" data-x="420" data-y="138" transform="rotate(-62 420 138)"><rect x="426" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="440" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="454" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="468" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="482" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="496" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/></g><circle cx="382" cy="150" r="18" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(382 150) scale(1.06)"><path d="M-8 0 L-2 6 L9 -7" fill="none" stroke="#2f8a57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="420" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >Tests pass</text><text x="420" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >CI must be green</text><rect x="581" y="132" width="18" height="40" rx="3" fill="#17232f"/><circle cx="590" cy="138" r="3" fill="#f4c430"/><g class="gate-arm" data-x="590" data-y="138" transform="rotate(-62 590 138)"><rect x="596" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="610" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="624" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="638" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="652" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="666" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/></g><circle cx="552" cy="150" r="18" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(552 150) scale(1.06)"><circle cx="-2" cy="-2" r="6.5" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3 L9 9" fill="none" stroke="#2a6f9e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="590" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >Lead review</text><text x="590" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >a human reads it</text><rect x="751" y="132" width="18" height="40" rx="3" fill="#17232f"/><circle cx="760" cy="138" r="3" fill="#f4c430"/><g class="gate-arm" data-x="760" data-y="138" transform="rotate(-62 760 138)"><rect x="766" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="780" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="794" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="808" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/><rect x="822" y="134" width="14" height="8" fill="#c4473a" stroke="#c4473a" stroke-width=".8"/><rect x="836" y="134" width="14" height="8" fill="#fff" stroke="#c4473a" stroke-width=".8"/></g><circle cx="722" cy="150" r="18" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(722 150) scale(1.06)"><circle cx="-5" cy="0" r="5" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 0 H10 M6 0 V4 M9 0 V3" fill="none" stroke="#6b5b95" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="760" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >Owner says yes</text><text x="760" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >approves release notes</text><text x="105" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >TA&#x27;s dev workspace</text><text x="105" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >no production access</text><rect x="855" y="86" width="100" height="86" rx="6" fill="#56636f"/><path d="M847 86 L905 60 L963 86 Z" fill="#17232f"/><circle cx="905" cy="126" r="26" fill="#7d8a96" stroke="#c7ced5" stroke-width="3"/><circle cx="905" cy="126" r="15" fill="#fff" stroke="#d8dee6" stroke-width="1.5"/><g transform="translate(905 126) scale(0.88)"><rect x="-8" y="-2" width="16" height="12" rx="2" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-5 -2 V-6 Q-5 -11 0 -11 Q5 -11 5 -6 V-2" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="905" y="232" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-weight="700" fill="#17232f" text-anchor="middle" >Production</text><text x="905" y="248" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >only the Lead deploys</text><text x="24" y="280" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="start" >Backups are taken before every database change, and the audit log shows who changed what.</text></svg></div>
+    <div class="card figure" style="margin-top:22px"><h3>When something breaks</h3><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 200" width="780" height="200" role="img" aria-label="Bug severity levels and response times"><title>Bug severity levels and response times</title><rect width="780" height="200" rx="14" fill="#ffffff"/><rect x="40" y="22" width="74" height="160" rx="16" fill="#17232f"/><rect x="70" y="182" width="14" height="14" fill="#17232f"/><circle cx="77" cy="52" r="19" fill="#c4473a"/><circle cx="71" cy="46" r="5" fill="#fff" opacity=".35"/><line x1="104" y1="52" x2="150" y2="52" stroke="#d8dee6" stroke-width="1.5"/><text x="160" y="48" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="start" >Critical</text><text x="300" y="48" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#17232f" text-anchor="start" >fix or roll back the same day, owner told within the hour</text><text x="300" y="65" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="start" >Example: one company sees another&#x27;s data, production down, wrong money totals</text><circle cx="77" cy="102" r="19" fill="#e39b2d"/><circle cx="71" cy="96" r="5" fill="#fff" opacity=".35"/><line x1="104" y1="102" x2="150" y2="102" stroke="#d8dee6" stroke-width="1.5"/><text x="160" y="98" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="start" >High</text><text x="300" y="98" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#17232f" text-anchor="start" >fixed within 2 working days</text><text x="300" y="115" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="start" >Example: a main workflow is broken for some users</text><circle cx="77" cy="152" r="19" fill="#2f8a57"/><circle cx="71" cy="146" r="5" fill="#fff" opacity=".35"/><line x1="104" y1="152" x2="150" y2="152" stroke="#d8dee6" stroke-width="1.5"/><text x="160" y="148" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#17232f" text-anchor="start" >Normal or low</text><text x="300" y="148" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#17232f" text-anchor="start" >planned into next week&#x27;s work</text><text x="300" y="165" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="400" fill="#5d6a77" text-anchor="start" >Example: a workaround exists, or it is cosmetic</text></svg></div>
+  </div>
+</section>
+
+<section id="costs">
+  <div class="wrap">
+    <h2>What the technology costs</h2>
+    <div class="stripe"></div>
+    <p class="lede">About <b id="cBuild"></b> a month while building and about <b id="cLive"></b> a month once live with first customers. One-time and outside-people costs: <b id="cOne"></b> over the project. Lead and TA salaries are not included.</p>
+    <div class="two">
+      <div class="card"><h3>Monthly, while building</h3><svg id="costBuild" viewBox="0 0 520 300" role="img" aria-label="Monthly costs while building, low to high"></svg></div>
+      <div class="card"><h3>Monthly, added once live</h3><svg id="costLive" viewBox="0 0 520 330" role="img" aria-label="Monthly costs added when live, low to high"></svg></div>
+    </div>
+    <div class="card" style="margin-top:22px"><h3>One-time and outside people</h3><svg id="costOne" viewBox="0 0 1060 230" role="img" aria-label="One-time and outside-people costs, low to high"></svg></div>
+  </div>
+</section>
+
+<section class="sky" id="risks">
+  <div class="wrap">
+    <h2>The five risks I would watch first</h2>
+    <div class="stripe"></div>
+    <div class="card figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 210" width="1000" height="210" role="img" aria-label="The five main risks"><title>The five main risks</title><rect width="1000" height="210" rx="14" fill="#ffffff"/><g class="risk-sign" style="transform-origin:100px 144px"><rect x="98" y="104" width="4" height="40" fill="#8a939c"/><rect x="60" y="32" width="80" height="80" rx="9" fill="#f4c430" stroke="#17232f" stroke-width="2.5" transform="rotate(45 100 72)"/><rect x="66" y="38" width="68" height="68" rx="6" fill="none" stroke="#17232f" stroke-width="1.2" transform="rotate(45 100 72)"/><circle cx="100" cy="72" r="21" fill="#f4c430" stroke="#f4c430" stroke-width="1.5"/><g transform="translate(100 72) scale(1.24)"><path d="M-4 -11 V-5 M4 -11 V-5 M-7 -5 H7 V0 Q7 6 0 6 Q-7 6 -7 0 Z M0 6 V11" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="100" y="168" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#17232f" text-anchor="middle" >Outside API access</text><text x="100" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >load boards, ELD, factoring</text><g class="risk-sign" style="transform-origin:300px 144px"><rect x="298" y="104" width="4" height="40" fill="#8a939c"/><rect x="260" y="32" width="80" height="80" rx="9" fill="#f4c430" stroke="#17232f" stroke-width="2.5" transform="rotate(45 300 72)"/><rect x="266" y="38" width="68" height="68" rx="6" fill="none" stroke="#17232f" stroke-width="1.2" transform="rotate(45 300 72)"/><circle cx="300" cy="72" r="21" fill="#f4c430" stroke="#f4c430" stroke-width="1.5"/><g transform="translate(300 72) scale(1.24)"><path d="M-5 -5 Q-5 -11 0 -11 Q6 -11 6 -5 Q6 -1 1 1 Q0 2 0 4" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="0" cy="9" r="1.2" fill="#17232f"/></g></g><text x="300" y="168" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#17232f" text-anchor="middle" >Existing Replit project</text><text x="300" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >not seen yet, checked in phase 0</text><g class="risk-sign" style="transform-origin:500px 144px"><rect x="498" y="104" width="4" height="40" fill="#8a939c"/><rect x="460" y="32" width="80" height="80" rx="9" fill="#f4c430" stroke="#17232f" stroke-width="2.5" transform="rotate(45 500 72)"/><rect x="466" y="38" width="68" height="68" rx="6" fill="none" stroke="#17232f" stroke-width="1.2" transform="rotate(45 500 72)"/><circle cx="500" cy="72" r="21" fill="#f4c430" stroke="#f4c430" stroke-width="1.5"/><g transform="translate(500 72) scale(1.24)"><rect x="-10" y="0" width="9" height="9" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="0" width="9" height="9" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="-4.5" y="-10" width="9" height="9" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="500" y="168" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#17232f" text-anchor="middle" >Big scope</text><text x="500" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >for a two-person team</text><g class="risk-sign" style="transform-origin:700px 144px"><rect x="698" y="104" width="4" height="40" fill="#8a939c"/><rect x="660" y="32" width="80" height="80" rx="9" fill="#f4c430" stroke="#17232f" stroke-width="2.5" transform="rotate(45 700 72)"/><rect x="666" y="38" width="68" height="68" rx="6" fill="none" stroke="#17232f" stroke-width="1.2" transform="rotate(45 700 72)"/><circle cx="700" cy="72" r="21" fill="#f4c430" stroke="#f4c430" stroke-width="1.5"/><g transform="translate(700 72) scale(1.24)"><rect x="-8" y="-2" width="16" height="12" rx="2" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-5 -2 V-6 Q-5 -11 0 -11 Q5 -11 5 -6 V-2" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="700" y="168" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#17232f" text-anchor="middle" >Company data isolation</text><text x="700" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >one leak breaks trust</text><g class="risk-sign" style="transform-origin:900px 144px"><rect x="898" y="104" width="4" height="40" fill="#8a939c"/><rect x="860" y="32" width="80" height="80" rx="9" fill="#f4c430" stroke="#17232f" stroke-width="2.5" transform="rotate(45 900 72)"/><rect x="866" y="38" width="68" height="68" rx="6" fill="none" stroke="#17232f" stroke-width="1.2" transform="rotate(45 900 72)"/><circle cx="900" cy="72" r="21" fill="#f4c430" stroke="#f4c430" stroke-width="1.5"/><g transform="translate(900 72) scale(1.24)"><path d="M-7 -11 H3 L8 -6 V11 H-7 Z M3 -11 V-6 H8" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M-3 7 L4 -1" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="-2.5" cy="-0.5" r="1.4" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="6" r="1.4" fill="none" stroke="#17232f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="900" y="168" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#17232f" text-anchor="middle" >AI document accuracy</text><text x="900" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="400" fill="#5d6a77" text-anchor="middle" >against the 95% goal</text></svg></div>
+    <div class="two" style="margin-top:22px">
+      <div class="card"><h3>How I would handle them</h3>
+        <p><b>Outside APIs:</b> discovery starts in phase 3, each integration sits behind one adapter so a provider can be swapped.</p>
+        <p><b>Existing Replit project:</b> a phase 0 inventory, shown live, before any estimate is final.</p>
+        <p><b>Scope:</b> each phase has a fixed scope; new ideas go to a backlog the owner ranks at milestone reviews.</p>
+        <p><b>Data isolation:</b> enforced in the code and in the database, tested on every change, external test before M2.</p>
+        <p style="margin:0"><b>AI accuracy:</b> measure the straight-through rate from day one and route unsure documents to a review queue.</p></div>
+      <div class="card"><h3>Questions for the owner</h3>
+        <ol class="qs">
+          <li>Sections 3 (User Roles and Permissions) and C (Acceptance Criteria) have headings but no content in my copy. Could I see them?</li>
+          <li>The Master Sheet charges the dispatch fee on linehaul revenue only, the calculator on total revenue. Which should the product use?</li>
+          <li>Who uses the platform first: only Family Auto Transportation, or outside carriers early?</li>
+          <li>Which ELD, load board, factoring and accounting tools are in use today?</li>
+        </ol>
+        <p class="small" style="margin:0">All 8 questions are in <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/PLAN.md">PLAN.md</a>.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  <b>Judah Rivera</b>
+  <p style="margin-top:8px">FDL Lead Developer final assessment, 26 October 2026.<br>
+  Full detail: <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/SUBMISSION.md">SUBMISSION.md</a> (the bug fix),
+  <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/PLAN.md">PLAN.md</a> (the plan and all tables),
+  <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/plan/estimate_model.py">estimate_model.py</a> (where every number comes from).</p>
+  <p style="margin:0">Dates assume a start on <span class="startDate"></span> and move with the real start date. Costs are approximate list prices to check before purchase.</p>
+</div></footer>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = {"start":"9 Nov 2026","scenarios":{"Optimistic":{"phases":[{"phase":0,"name":"Discovery","start":0.0,"end":1.32,"lead":46,"ta":23},{"phase":1,"name":"Foundations","start":1.32,"end":4.38,"lead":107,"ta":77},{"phase":2,"name":"Dispatch core","start":4.38,"end":12.52,"lead":200,"ta":329},{"phase":3,"name":"Money","start":12.52,"end":21.12,"lead":301,"ta":263},{"phase":4,"name":"Customer-ready release","start":21.12,"end":27.19,"lead":187,"ta":239},{"phase":5,"name":"Tracking and fleet compliance","start":27.19,"end":33.36,"lead":203,"ta":229},{"phase":6,"name":"Automated back office","start":33.36,"end":42.97,"lead":330,"ta":343},{"phase":7,"name":"AI and intelligence","start":42.97,"end":51.93,"lead":273,"ta":354}],"total":3852,"lead":1646,"ta":1856,"contractor":350,"note":"Low hours, 35 productive hours a week, fast owner decisions and vendor approvals.","apps":{"start":27.19,"end":51.93},"milestones":[{"week":13,"date":"5 Feb 2027"},{"week":28,"date":"21 May 2027"},{"week":34,"date":"2 Jul 2027"},{"week":43,"date":"3 Sep 2027"},{"week":52,"date":"5 Nov 2027"}]},"Realistic":{"phases":[{"phase":0,"name":"Discovery","start":0.0,"end":2.21,"lead":71,"ta":35},{"phase":1,"name":"Foundations","start":2.21,"end":7.99,"lead":185,"ta":132},{"phase":2,"name":"Dispatch core","start":7.99,"end":24.76,"lead":354,"ta":585},{"phase":3,"name":"Money","start":24.76,"end":40.85,"lead":515,"ta":451},{"phase":4,"name":"Customer-ready release","start":40.85,"end":52.21,"lead":319,"ta":409},{"phase":5,"name":"Tracking and fleet compliance","start":52.21,"end":64.28,"lead":364,"ta":409},{"phase":6,"name":"Automated back office","start":64.28,"end":83.58,"lead":605,"ta":631},{"phase":7,"name":"AI and intelligence","start":83.58,"end":101.22,"lead":492,"ta":638}],"total":6824,"lead":2903,"ta":3288,"contractor":632,"note":"Likely hours plus 15% contingency, 32 productive hours a week, some vendor delays.","apps":{"start":52.21,"end":101.22},"milestones":[{"week":25,"date":"30 Apr 2027"},{"week":53,"date":"12 Nov 2027"},{"week":65,"date":"4 Feb 2028"},{"week":84,"date":"16 Jun 2028"},{"week":102,"date":"20 Oct 2028"}]},"Conservative":{"phases":[{"phase":0,"name":"Discovery","start":0.0,"end":3.3,"lead":92,"ta":46},{"phase":1,"name":"Foundations","start":3.3,"end":11.93,"lead":241,"ta":173},{"phase":2,"name":"Dispatch core","start":11.93,"end":38.04,"lead":472,"ta":782},{"phase":3,"name":"Money","start":38.04,"end":62.52,"lead":685,"ta":603},{"phase":4,"name":"Customer-ready release","start":62.52,"end":79.97,"lead":427,"ta":550},{"phase":5,"name":"Tracking and fleet compliance","start":79.97,"end":98.8,"lead":498,"ta":556},{"phase":6,"name":"Automated back office","start":98.8,"end":129.54,"lead":842,"ta":880},{"phase":7,"name":"AI and intelligence","start":129.54,"end":157.62,"lead":684,"ta":888}],"total":9269,"lead":3942,"ta":4477,"contractor":850,"note":"High hours, 28 productive hours a week, a provider refuses access, scope grows.","apps":{"start":79.97,"end":157.62},"milestones":[{"week":39,"date":"6 Aug 2027"},{"week":80,"date":"19 May 2028"},{"week":99,"date":"29 Sep 2028"},{"week":130,"date":"4 May 2029"},{"week":158,"date":"16 Nov 2029"}]}},"workstreams":[{"id":1,"phase":0,"name":"Discovery and baseline","low":60,"likely":80,"high":120,"lead":0.7,"staff":"Lead (TA assists inventory)","milestone":1},{"id":2,"phase":1,"name":"Platform foundations","low":160,"likely":240,"high":360,"lead":0.6,"staff":"Lead builds security core, TA builds screens and tests","milestone":1},{"id":3,"phase":2,"name":"Dispatch and loads","low":160,"likely":240,"high":360,"lead":0.45,"staff":"Lead + TA","milestone":1},{"id":4,"phase":2,"name":"Drivers, fleet, brokers and customers","low":90,"likely":140,"high":220,"lead":0.25,"staff":"TA leads, Lead reviews","milestone":1},{"id":5,"phase":2,"name":"Documents and proof of delivery","low":70,"likely":110,"high":170,"lead":0.55,"staff":"Lead","milestone":1},{"id":6,"phase":2,"name":"Driver mobile web","low":90,"likely":140,"high":210,"lead":0.25,"staff":"TA builds, Lead reviews","milestone":1},{"id":7,"phase":2,"name":"Notifications","low":50,"likely":80,"high":130,"lead":0.25,"staff":"TA","milestone":1},{"id":8,"phase":3,"name":"Accounting portal core","low":280,"likely":420,"high":640,"lead":0.55,"staff":"Lead (accounting logic), TA (screens)","milestone":2},{"id":9,"phase":3,"name":"Load cost and profitability (Master Sheet section A)","low":130,"likely":190,"high":290,"lead":0.65,"staff":"Lead","milestone":2},{"id":10,"phase":3,"name":"Reports and analytics","low":80,"likely":120,"high":190,"lead":0.35,"staff":"TA builds, Lead defines metrics","milestone":2},{"id":11,"phase":4,"name":"Company onboarding and platform admin","low":80,"likely":120,"high":190,"lead":0.55,"staff":"Lead","milestone":2},{"id":12,"phase":4,"name":"Public website, signup and billing","low":120,"likely":180,"high":280,"lead":0.25,"staff":"TA builds, Lead reviews tracking and privacy","milestone":2},{"id":13,"phase":4,"name":"Customer shipment portal","low":60,"likely":90,"high":140,"lead":0.35,"staff":"TA builds, Lead reviews security","milestone":2},{"id":14,"phase":4,"name":"Security, backups and reliability","low":110,"likely":160,"high":240,"lead":0.6,"staff":"Lead","milestone":2},{"id":15,"phase":5,"name":"GPS tracking, maps and arrival estimates","low":160,"likely":250,"high":400,"lead":0.5,"staff":"Lead (integration), TA (map UI)","milestone":3},{"id":16,"phase":5,"name":"Fleet maintenance, DOT inspections and DVIR","low":150,"likely":230,"high":350,"lead":0.35,"staff":"TA builds, Lead owns extraction and rules","milestone":3},{"id":17,"phase":5,"name":"Driver performance scorecard","low":50,"likely":80,"high":130,"lead":0.55,"staff":"Lead","milestone":3},{"id":18,"phase":6,"name":"Automated back office","low":320,"likely":500,"high":800,"lead":0.5,"staff":"Lead (pipeline), TA (exception queue UI)","milestone":4},{"id":19,"phase":6,"name":"Factoring integrations and settlements","low":80,"likely":140,"high":240,"lead":0.45,"staff":"Lead","milestone":4},{"id":20,"phase":6,"name":"Accounting exports, IFTA and bookkeeping support","low":170,"likely":270,"high":420,"lead":0.45,"staff":"Lead + accounting adviser","milestone":4},{"id":21,"phase":7,"name":"Load-board access and AI load outreach","low":200,"likely":320,"high":520,"lead":0.5,"staff":"Lead","milestone":5},{"id":22,"phase":7,"name":"Broker intelligence and rating","low":70,"likely":110,"high":170,"lead":0.35,"staff":"TA builds, Lead owns rules","milestone":5},{"id":23,"phase":7,"name":"Roadside repair and service intelligence","low":70,"likely":110,"high":180,"lead":0.25,"staff":"TA builds, Lead reviews","milestone":5},{"id":24,"phase":7,"name":"Unified communications and AI analysis","low":190,"likely":290,"high":460,"lead":0.4,"staff":"Lead","milestone":5},{"id":25,"phase":8,"name":"Native iOS and Android apps","low":350,"likely":550,"high":850,"lead":null,"staff":"Mobile contractor, Lead reviews","milestone":5}],"milestoneNames":["Internal pilot","Customer-ready version 1","Tracking and fleet compliance","Automated back office","Full platform"],"costs":{"build":[{"name":"Replit plan for 2 developers in the owner's workspace","low":50,"high":80},{"name":"Replit development and test deployments, database usage","low":10,"high":50},{"name":"GitHub (Free or Team); paid code scanning for private repos is optional","low":0,"high":70},{"name":"AI coding tools for 2 developers at heavy daily use","low":200,"high":400},{"name":"Error monitoring and uptime checks","low":0,"high":30},{"name":"Transactional email","low":0,"high":20},{"name":"Domain and DNS","low":2,"high":2}],"live":[{"name":"Production hosting (always-on or autoscale)","low":20,"high":150},{"name":"Managed Postgres with point-in-time recovery","low":25,"high":100},{"name":"Off-site immutable backups","low":5,"high":30},{"name":"Document and photo storage","low":5,"high":50},{"name":"Email at volume","low":15,"high":50},{"name":"SMS (US business texting registration plus per-message fees)","low":20,"high":100},{"name":"Maps and geocoding","low":0,"high":200},{"name":"Logs and monitoring","low":0,"high":60}],"buildTotal":"$260 to $650","liveTotal":"$350 to $1,400","oneTime":[{"name":"Mobile contractor for native apps","low":8750,"high":51000},{"name":"Accounting and IFTA adviser","low":1500,"high":6000},{"name":"Part-time UX designer","low":1000,"high":4800},{"name":"External penetration test","low":3000,"high":10000},{"name":"Legal and privacy review","low":1500,"high":5000}],"oneTimeTotal":"$15,750 to $76,800"},"bugs":{"original":{"fuel_cost":20000,"dispatch_fee":20000,"total_cost":40550,"profit":-38550,"margin_pct":-95.07,"break_even_rate":20550,"suggested_rate":25687.5},"fixed":{"fuel_cost":200.0,"dispatch_fee":200.0,"total_cost":950.0,"profit":1050.0,"margin_pct":52.5,"break_even_rate":833.33,"suggested_rate":1071.43}}};
+const NS = "http://www.w3.org/2000/svg";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const ease = t => (t = clamp(t), t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const back = t => { t = clamp(t); const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const money = v => (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: Math.abs(v) % 1 ? 2 : 0, maximumFractionDigits: 2 });
+const mix = (a, b, p) => { const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  const x = h(a), y = h(b); return `rgb(${x.map((v, i) => Math.round(lerp(v, y[i], p))).join(",")})`; };
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const MC = [1, 2, 3, 4, 5].map(i => css(`--m${i}`));
+const REAL = D.scenarios.Realistic;
+const ORDER = ["Realistic", "Optimistic", "Conservative"];
+
+/* ---------- one clock for every effect ---------- */
+const params = new URLSearchParams(location.search);
+const FROZEN = params.has("render") || params.has("t");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const effects = [];
+const io = new IntersectionObserver(entries => entries.forEach(en => {
+  const e = effects.find(x => x.root === en.target);
+  e.visible = en.isIntersecting;
+  if (e.visible && e.t0 === null) e.t0 = performance.now();
+}), { threshold: .25 });
+function effect(root, period, draw) {
+  const e = { root, period, draw, t0: null, visible: false, manual: null };
+  effects.push(e); io.observe(root); return e;
+}
+const timeOf = e => (performance.now() - e.t0) / 1000;
+window.seek = s => effects.forEach(e => e.draw(e.period ? s % e.period : s, true));
+function tick() {
+  effects.forEach(e => { if (e.visible && e.t0 !== null) { const t = timeOf(e); e.draw(e.period ? t % e.period : t); } });
+  requestAnimationFrame(tick);
+}
+
+/* ---------- stretchy tab pill (effect 04) ---------- */
+function pillRects(tabs) {
+  const box = tabs.getBoundingClientRect();
+  return $$(".tab", tabs).map(b => { const r = b.getBoundingClientRect(); return [r.left - box.left, r.right - box.left]; });
+}
+function drawPill(tabs, from, to, p) {
+  const r = pillRects(tabs), a = r[from], b = r[to], right = to > from;
+  const lead = ease(p / .8), trail = ease((p - .2) / .8);
+  const L = lerp(a[0], b[0], right ? trail : lead), R = lerp(a[1], b[1], right ? lead : trail);
+  const pill = $(".pill", tabs);
+  pill.style.left = L + "px"; pill.style.width = (R - L) + "px";
+  $$(".tab", tabs).forEach((t, i) => {
+    const cover = clamp((Math.min(R, r[i][1]) - Math.max(L, r[i][0])) / (r[i][1] - r[i][0]));
+    t.style.color = mix("#5d6a77", "#ffffff", cover);
+    t.setAttribute("aria-selected", (p < .5 ? from : to) === i);
+  });
+}
+
+/* ---------- hero: masked type (effect 09), signs, truck ---------- */
+function setupHero() {
+  const title = $(".mask-title"), fill = $(".fill", title), edge = $(".edge", title), sub = $("#heroSub");
+  const signs = $$(".hero-sign"), truck = $("#heroTruck"), counters = $$('[data-count="hours"]', $("#hero"));
+  $("#statV1").textContent = REAL.milestones[1].date;
+  $("#statFull").textContent = REAL.milestones[4].date;
+  effect($("#hero"), 0, t => {
+    const p = ease(t / 1.35), h = title.offsetHeight;
+    fill.style.clipPath = `inset(${(1 - p) * 100}% 0 0 0)`;
+    edge.style.top = (1 - p) * h + "px";
+    edge.style.opacity = 1 - clamp((t - 1.35) / .3);
+    sub.style.transform = `translateY(${(1 - ease((t - .95) / .8)) * 110}%)`;
+    counters.forEach(c => c.textContent = fmt(REAL.total * ease((t - 1.1) / 1.4)));
+    signs.forEach((s, i) => {
+      const k = back((t - 1.0 - i * .18) / .55), x = +s.dataset.x;
+      s.setAttribute("transform", `translate(${x} 150) scale(${Math.max(k, 0.001)}) translate(${-x} -150)`);
+    });
+    const loop = (t % 8) / 8;
+    truck.setAttribute("transform", `translate(${lerp(-260, 1210, loop)} 0)`);
+  });
+}
+
+/* ---------- part 1: bar morph original to fixed ---------- */
+function setupBugs() {
+  const svg = $("#bugChart"), tabs = $("#bugTabs");
+  const rows = [["Fuel cost", "fuel_cost"], ["Dispatch fee", "dispatch_fee"], ["Total cost", "total_cost"],
+    ["Profit", "profit"], ["Margin", "margin_pct"], ["Break-even rate", "break_even_rate"], ["Suggested rate", "suggested_rate"]];
+  const X0 = 330, k = 200 / 40550, axis = el("g", {}, svg);
+  el("line", { x1: X0, y1: 10, x2: X0, y2: 316, stroke: "#9aa3ab", "stroke-width": 1.5 }, axis);
+  const items = rows.map(([lab, key], i) => {
+    const y = 22 + i * 43;
+    txt(svg, 0, y + 18, lab, { "font-size": 15, fill: "#17232f" });
+    const bar = el("rect", { y, height: 26, rx: 5 }, svg);
+    const val = txt(svg, 0, y + 19, "", { "font-size": 15, "font-weight": 700, "font-family": css("--head") });
+    return { key, bar, val };
+  });
+  const O = D.bugs.original, F = D.bugs.fixed;
+  function render(ps) {
+    items.forEach((it, i) => {
+      const p = ps[i], o = O[it.key], f = F[it.key], v = lerp(o, f, p), pct = it.key === "margin_pct";
+      const w = pct ? Math.abs(v) * 1.4 : Math.abs(v) * k, x = v < 0 ? X0 - w : X0;
+      it.bar.setAttribute("x", x); it.bar.setAttribute("width", Math.max(w, 2));
+      it.bar.setAttribute("fill", mix("#c4473a", "#2f8a57", p));
+      it.val.textContent = pct ? v.toFixed(2) + "%" : money(Math.round(v * 100) / 100);
+      it.val.setAttribute("fill", mix("#c4473a", "#2f8a57", p));
+      it.val.setAttribute("text-anchor", v < 0 ? "end" : "start");
+      it.val.setAttribute("x", v < 0 ? X0 - w - 8 : X0 + w + 8);
+    });
+  }
+  const ring = $("#ring");
+  el("circle", { cx: 120, cy: 120, r: 92, fill: "none", stroke: "#e3eff8", "stroke-width": 20 }, ring);
+  const arc = el("circle", { cx: 120, cy: 120, r: 92, fill: "none", "stroke-width": 20, "stroke-linecap": "round",
+    transform: "rotate(-90 120 120)", "stroke-dasharray": `${2 * Math.PI * 92}` }, ring);
+  const rt = txt(ring, 120, 128, "", { "text-anchor": "middle", "font-size": 40, "font-weight": 700, "font-family": css("--head"), fill: "#17232f" });
+  const rs = txt(ring, 120, 156, "", { "text-anchor": "middle", "font-size": 15, fill: "#5d6a77" });
+  function renderRing(p) {
+    const pass = Math.round(lerp(1, 32, p)), total = Math.round(lerp(5, 32, p)), C = 2 * Math.PI * 92;
+    arc.setAttribute("stroke-dashoffset", C * (1 - lerp(.2, 1, p)));
+    arc.setAttribute("stroke", mix("#c4473a", "#2f8a57", p));
+    rt.textContent = `${pass} of ${total}`; rs.textContent = p < .5 ? "original code" : "fixed code";
+  }
+  const e = effect(svg.closest(".bug-grid"), 8, (t) => {
+    let ps, pp, from = 0, to = 1;
+    if (e.manual) {
+      const m = e.manual, q = ease((performance.now() - m.t0) / 1000);
+      ps = rows.map(() => lerp(m.from, m.to, q)); pp = q; from = m.from; to = m.to;
+    } else if (t < 6.6) {
+      ps = rows.map((_, i) => ease((t - i * .12) / 1.2)); pp = clamp(t / 1.2);
+    } else {
+      const q = ease((t - 6.6) / 1.4); ps = rows.map(() => 1 - q); pp = q; from = 1; to = 0;
+    }
+    render(ps); renderRing(ps[ps.length - 1]); drawPill(tabs, from, to, pp);
+  });
+  $$(".tab", tabs).forEach(b => b.addEventListener("click", () => {
+    const to = +b.dataset.i, cur = e.manual ? e.manual.to : 1;
+    e.manual = { from: to === cur ? 1 - to : cur, to, t0: performance.now() - (to === cur || FROZEN || REDUCED ? 1000 : 0) };
+    if (FROZEN || REDUCED) e.draw(0);
+  }));
+}
+
+/* ---------- glance band ---------- */
+function setupGlance() {
+  $("#hRange").textContent = `${fmt(D.scenarios.Optimistic.total)} to ${fmt(D.scenarios.Conservative.total)}`;
+  $("#kPilot").textContent = REAL.milestones[0].date; $("#kV1").textContent = REAL.milestones[1].date;
+  $("#kBuild").textContent = D.costs.buildTotal;
+  const c = $('[data-count="hours"]', $("#kpis"));
+  const kpis = $$(".kpi", $("#kpis"));
+  effect($("#kpis"), 0, t => {
+    c.textContent = fmt(REAL.total * ease(t / 1.6));
+    kpis.forEach((k, i) => k.style.borderTopColor = mix("#3b444e", "#f4c430", ease((t - i * .15) / .6)));
+  });
+}
+
+/* ---------- timeline: scenario tabs over a phase chart ---------- */
+function setupGantt() {
+  const svg = $("#gantt"), tabs = $("#scTabs");
+  const X0 = 190, X1 = 880, MAXW = 160, x = w => X0 + (X1 - X0) * w / MAXW;
+  const startDate = new Date(2026, 10, 9);
+  for (const yr of [2027, 2028, 2029]) {
+    const w = (new Date(yr, 0, 1) - startDate) / 6048e5;
+    if (w < 12) continue;
+    el("line", { x1: x(w), y1: 64, x2: x(w), y2: 352, stroke: "#d8dee6", "stroke-dasharray": "3 4" }, svg);
+    txt(svg, x(w), 372, `1 Jan ${yr}`, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  }
+  txt(svg, X0, 372, D.start, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  const shades = ["#9ab8cf", "#7ea4c2", "#2a6f9e", "#2f8a57", "#226b45", "#e39b2d", "#c9822a", "#c4473a"];
+  const rows = REAL.phases.map((ph, i) => {
+    const y = 72 + i * 31;
+    txt(svg, 0, y + 17, `${ph.phase}  ${ph.name}`, { "font-size": 14, fill: "#17232f" });
+    return { bar: el("rect", { y, height: 22, rx: 5, fill: shades[i] }, svg) };
+  });
+  const yApps = 72 + 8 * 31;
+  txt(svg, 0, yApps + 17, "8  Native apps", { "font-size": 14, fill: "#17232f" });
+  const apps = el("rect", { y: yApps, height: 22, rx: 5, fill: "none", stroke: "#e39b2d", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
+  const ms = REAL.milestones.map((_, i) => {
+    const g = el("g", {}, svg);
+    el("line", { x1: 0, y1: 50, x2: 0, y2: 352, stroke: "#1d6b48", "stroke-width": 1.2, "stroke-dasharray": "2 4" }, g);
+    el("rect", { x: -17, y: 26, width: 34, height: 24, rx: 5, fill: "#1d6b48", stroke: "#fff", "stroke-width": 1.5 }, g);
+    txt(g, 0, 43, `M${i + 1}`, { "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: "#fff", "font-family": css("--head") });
+    return g;
+  });
+  const pulse = el("circle", { r: 0, fill: "none", stroke: "#1d6b48", "stroke-width": 2 }, svg);
+  const side = $("#scSide .swap");
+  let shownName = null;
+  function setSide(name) {
+    if (shownName === name) return; shownName = name;
+    const s = D.scenarios[name];
+    $("#scName").textContent = name; $("#scNote").textContent = s.note;
+    $("#scHours").textContent = `${fmt(s.total)} h`;
+    $("#scM1").textContent = s.milestones[0].date; $("#scM2").textContent = s.milestones[1].date;
+    $("#scM5").textContent = s.milestones[4].date;
+  }
+  function render(a, b, p, t) {
+    const A = D.scenarios[ORDER[a]], B = D.scenarios[ORDER[b]];
+    rows.forEach((r, i) => {
+      const q = ease((p * 1.4 - i * .05)), s = lerp(A.phases[i].start, B.phases[i].start, q), e = lerp(A.phases[i].end, B.phases[i].end, q);
+      r.bar.setAttribute("x", x(s)); r.bar.setAttribute("width", Math.max(x(e) - x(s) - 2, 2));
+    });
+    const q = ease(p);
+    apps.setAttribute("x", x(lerp(A.apps.start, B.apps.start, q)));
+    apps.setAttribute("width", x(lerp(A.apps.end, B.apps.end, q)) - x(lerp(A.apps.start, B.apps.start, q)) - 2);
+    ms.forEach((g, i) => g.setAttribute("transform", `translate(${x(lerp(A.milestones[i].week, B.milestones[i].week, q))} 0)`));
+    const m5 = x(lerp(A.milestones[4].week, B.milestones[4].week, q)), ph = (t % 2) / 2;
+    pulse.setAttribute("cx", m5); pulse.setAttribute("cy", 38); pulse.setAttribute("r", 14 + ph * 16);
+    pulse.setAttribute("opacity", p >= 1 ? (1 - ph) * .6 : 0);
+    setSide(ORDER[p < .5 ? a : b]);
+    const d = p < .5 ? p * 2 : (1 - p) * 2;
+    side.style.opacity = 1 - d; side.style.transform = `translateX(${(p < .5 ? -1 : 1) * d * 15}px)`;
+    drawPill(tabs, a, b, p);
+  }
+  const e = effect(svg.closest(".tl-grid"), 24, (t) => {
+    if (e.manual) {
+      const m = e.manual; render(m.from, m.to, clamp((performance.now() - m.t0) / 1000), timeOf(e));
+      return;
+    }
+    const k = Math.floor(t / 8), local = t % 8;
+    if (local < 6.6) render(k, k, 1, local); else render(k, (k + 1) % 3, clamp((local - 6.6) / 1.2), local);
+  });
+  $$(".tab", tabs).forEach(b => b.addEventListener("click", () => {
+    const to = +b.dataset.i, from = e.manual ? e.manual.to : ORDER.indexOf(shownName);
+    e.manual = { from, to, t0: performance.now() - (FROZEN || REDUCED ? 1000 : 0) };
+    if (FROZEN || REDUCED) e.draw(0);
+  }));
+}
+
+/* ---------- hours: donut and workstream ranges ---------- */
+function setupHours() {
+  const svg = $("#donut"), parts = [["Lead", REAL.lead, "#2a6f9e"], ["Technical Assistant", REAL.ta, "#2f8a57"], ["Mobile contractor", REAL.contractor, "#e39b2d"]];
+  const C = 2 * Math.PI * 105, arcs = [];
+  let acc = 0;
+  parts.forEach(([name, h, col]) => {
+    arcs.push({ a: el("circle", { cx: 150, cy: 150, r: 105, fill: "none", stroke: col, "stroke-width": 38,
+      transform: `rotate(${-90 + acc / REAL.total * 360} 150 150)`, "stroke-dasharray": `0 ${C}` }, svg), len: h / REAL.total * C - 3 });
+    acc += h;
+    $("#donutLegend").insertAdjacentHTML("beforeend", `<span><i style="background:${col}"></i>${name} <b>${fmt(h)} h</b></span>`);
+  });
+  const ct = txt(svg, 150, 152, "", { "text-anchor": "middle", "font-size": 36, "font-weight": 700, "font-family": css("--head"), fill: "#17232f" });
+  txt(svg, 150, 178, "hours, realistic", { "text-anchor": "middle", "font-size": 14, fill: "#5d6a77" });
+  effect($("#donut").closest(".hours-grid"), 0, t => {
+    arcs.forEach((r, i) => r.a.setAttribute("stroke-dasharray", `${r.len * ease((t - i * .35) / 1)} ${C}`));
+    ct.textContent = fmt(REAL.total * ease(t / 1.7));
+  });
+
+  const ws = $("#ws"), list = [...D.workstreams].sort((a, b) => a.milestone - b.milestone || b.likely - a.likely);
+  D.milestoneNames.forEach((n, i) => $("#wsLegend").insertAdjacentHTML("beforeend", `<span><i style="background:${MC[i]}"></i>M${i + 1} ${n}</span>`));
+  const X0 = 300, x = h => X0 + (750 - X0) * h / 900;
+  for (let h = 0; h <= 800; h += 200) {
+    el("line", { x1: x(h), y1: 0, x2: x(h), y2: 612, stroke: "#e6ebf0" }, ws);
+    txt(ws, x(h), 632, h, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  }
+  const tip = $("#tip");
+  const rows = list.map((w, i) => {
+    const y = 6 + i * 24.2, col = MC[w.milestone - 1];
+    const g = el("g", { tabindex: 0 }, ws);
+    el("rect", { x: 0, y: y - 2, width: 760, height: 23, fill: "transparent" }, g);
+    txt(g, 0, y + 14, `${w.id}. ${w.name.split(" (")[0]}`, { "font-size": 13, fill: "#17232f" });
+    const bar = el("rect", { y: y + 5, height: 9, rx: 4.5, fill: col, opacity: .3 }, g);
+    const dot = el("circle", { cy: y + 9.5, r: 0, fill: col }, g);
+    const show = ev => {
+      tip.innerHTML = `<b>${w.name}</b><br>${w.low} / ${w.likely} / ${w.high} h (low / likely / high)<br>` +
+        `${w.lead === null ? "Mobile contractor" : `Lead ${Math.round(w.lead * 100)}%, TA ${Math.round((1 - w.lead) * 100)}%`}<br>Milestone M${w.milestone}`;
+      const r = (ev.clientX ? ev : g.getBoundingClientRect());
+      tip.style.left = Math.min((ev.clientX || r.left) + 14, innerWidth - 300) + "px";
+      tip.style.top = ((ev.clientY || r.top) + 14) + "px"; tip.style.opacity = 1;
+    };
+    g.addEventListener("mousemove", show); g.addEventListener("focus", show);
+    g.addEventListener("mouseleave", () => tip.style.opacity = 0); g.addEventListener("blur", () => tip.style.opacity = 0);
+    return { w, bar, dot };
+  });
+  effect(ws, 0, t => rows.forEach((r, i) => {
+    const p = ease((t - i * .045) / .9), lo = lerp(r.w.likely, r.w.low, p), hi = lerp(r.w.likely, r.w.high, p);
+    r.bar.setAttribute("x", x(lo)); r.bar.setAttribute("width", Math.max(x(hi) - x(lo), 0.1));
+    r.dot.setAttribute("cx", x(r.w.likely)); r.dot.setAttribute("r", 5.5 * back((t - i * .045) / .5));
+  }));
+}
+
+/* ---------- release gates: the truck lifts each barrier (flowing path) ---------- */
+function setupGates() {
+  const root = $("#gates"), svg = $("svg", root), arms = $$(".gate-arm", svg), truck = $(".gate-truck", svg);
+  const vault = el("circle", { cx: 905, cy: 126, r: 30, fill: "none", stroke: "#f4c430", "stroke-width": 4, opacity: 0 }, svg);
+  effect(root, 8, t => {
+    const drive = ease(t / 6), dx = lerp(0, 790, drive), front = 8 + 88 + dx;
+    const leave = clamp((t - 6) / .5), back_in = clamp((t - 7.3) / .7);
+    truck.setAttribute("transform", `translate(${t < 7.3 ? dx : 0} 0)`);
+    truck.style.opacity = t < 7.3 ? 1 - leave : back_in;
+    arms.forEach(a => {
+      const gx = +a.dataset.x, gy = +a.dataset.y;
+      const up = clamp((front - (gx - 130)) / 60), down = ease((t - 6.6) / 1.2);
+      a.setAttribute("transform", `rotate(${-62 * ease(up) * (1 - down)} ${gx} ${gy})`);
+    });
+    const glow = clamp((t - 5.6) / .4) * (1 - clamp((t - 6.9) / .8));
+    vault.setAttribute("opacity", glow); vault.setAttribute("r", 30 + 8 * glow);
+  });
+}
+
+/* ---------- costs: low to high range bars ---------- */
+function rangeChart(svg, items, max, step, labelW, unit) {
+  const W = +svg.getAttribute("viewBox").split(" ")[2], x = v => labelW + (W - labelW - 150) * v / max;
+  const H = +svg.getAttribute("viewBox").split(" ")[3];
+  for (let v = 0; v <= max; v += step) {
+    el("line", { x1: x(v), y1: 0, x2: x(v), y2: H - 24, stroke: "#e6ebf0" }, svg);
+    txt(svg, x(v), H - 6, `$${fmt(v)}`, { "text-anchor": "middle", "font-size": 12, fill: "#5d6a77" });
+  }
+  const rows = items.map((it, i) => {
+    const y = 8 + i * 32, name = it.name.split(" (")[0].split(";")[0];
+    const lines = [""]; name.split(" ").forEach(w => (lines[lines.length - 1] + " " + w).trim().length > 27 && lines.length < 2
+      ? lines.push(w) : lines[lines.length - 1] = (lines[lines.length - 1] + " " + w).trim());
+    lines.forEach((l, j) => txt(svg, 0, y + (lines.length === 1 ? 15 : 9 + j * 14), l, { "font-size": 12.5, fill: "#17232f" }));
+    const bar = el("rect", { y: y + 4, height: 14, rx: 7, fill: "#2a6f9e" }, svg);
+    const val = txt(svg, 0, y + 16, `${money(it.low)} to ${money(it.high)}${unit}`, { "font-size": 12.5, "font-weight": 700, fill: "#17232f", "font-family": css("--head") });
+    return { it, bar, val };
+  });
+  effect(svg, 0, t => rows.forEach((r, i) => {
+    const p = ease((t - i * .08) / .9), hi = lerp(r.it.low, r.it.high, p);
+    r.bar.setAttribute("x", x(r.it.low) - 2); r.bar.setAttribute("width", Math.max(x(hi) - x(r.it.low) + 4, 4));
+    r.bar.setAttribute("opacity", clamp((t - i * .08) / .3));
+    r.val.setAttribute("x", x(hi) + 10); r.val.setAttribute("opacity", clamp((t - i * .08 - .6) / .4));
+  }));
+}
+function setupCosts() {
+  $("#cBuild").textContent = D.costs.buildTotal; $("#cLive").textContent = D.costs.liveTotal; $("#cOne").textContent = D.costs.oneTimeTotal;
+  rangeChart($("#costBuild"), D.costs.build, 400, 100, 210, "");
+  rangeChart($("#costLive"), D.costs.live, 200, 50, 210, "");
+  rangeChart($("#costOne"), D.costs.oneTime, 52000, 10000, 260, "");
+}
+
+/* ---------- risks: signs swing in ---------- */
+function setupRisks() {
+  const signs = $$(".risk-sign");
+  effect($("#risks .figure"), 0, t => signs.forEach((s, i) => {
+    const u = clamp(t - .1 - i * .16, 0, 3);
+    s.style.transform = `rotate(${-28 * Math.exp(-3.2 * u) * Math.cos(7 * u)}deg)`;
+  }));
+}
+
+$$(".startDate, #startDate").forEach(s => s.textContent = D.start);
+setupHero(); setupBugs(); setupGlance(); setupGantt(); setupHours(); setupGates(); setupCosts(); setupRisks();
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  if (FROZEN || REDUCED) {
+    const s = params.has("t") ? +params.get("t") : 4.4;
+    effects.forEach(e => { e.t0 = 0; e.visible = true; });
+    window.seek(s);
+  } else {
+    window.seek(0); requestAnimationFrame(tick);
+  }
+});
+</script>
+</body>
+</html>

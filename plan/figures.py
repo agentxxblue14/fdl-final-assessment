@@ -108,7 +108,7 @@ def truck(x, y, s=1, cab=BLUE):
          f'<rect x="0" y="-24" width="162" height="5" rx="1" fill="{frame}"/>']
     for ux in (4, 56, 108, 158):
         b.append(f'<rect x="{ux}" y="-55" width="3" height="34" fill="{frame}"/>')
-    for i, (cx, col) in enumerate(((10, "#d9534f"), (60, "#f2f4f6"), (110, AMBER))):
+    for cx, col in ((10, "#d9534f"), (60, "#f2f4f6"), (110, AMBER)):
         b.append(car(cx, -55, 1.05, col))
     for cx, col in ((10, "#7aa7c7"), (60, "#4d5a66")):
         b.append(car(cx, -24, 1.05, col))
@@ -376,7 +376,7 @@ def gate(x, ground, label_y, label1, label2, ic, color):
     """A toll-style barrier with its arm raised."""
     b = (f'<rect x="{x - 9}" y="{ground - 40}" width="18" height="40" rx="3" fill="{INK}"/>'
          f'<circle cx="{x}" cy="{ground - 34}" r="3" fill="{LANE}"/>'
-         f'<g transform="rotate(-62 {x} {ground - 34})">'
+         f'<g class="gate-arm" data-x="{x}" data-y="{ground - 34}" transform="rotate(-62 {x} {ground - 34})">'
          + "".join(f'<rect x="{x + 6 + k * 14}" y="{ground - 38}" width="14" height="8" fill="{RED if k % 2 == 0 else "#fff"}" stroke="{RED}" stroke-width=".8"/>' for k in range(6))
          + '</g>' + icon(ic, x - 38, ground - 22, 18, color)
          + text(x, label_y, label1, 12.5, INK, 700, "middle", HEAD)
@@ -389,7 +389,7 @@ def fig_gates():
     ground = 206
     b = [text(24, 32, "Every change passes four gates before it reaches production", 17, INK, 700, font=HEAD),
          road(0, W, ground - 34, 34)]
-    b.append(truck(8, ground - 8, .38))
+    b.append(f'<g class="gate-truck">{truck(8, ground - 8, .38)}</g>')
     stops = [(250, "Pull request", "no direct pushes", "pr", BLUE),
              (420, "Tests pass", "CI must be green", "check", GREEN),
              (590, "Lead review", "a human reads it", "magnifier", BLUE),
@@ -464,10 +464,11 @@ def fig_risks():
     b = []
     for i, (ic, t1, t2) in enumerate(risks):
         cx = 100 + i * 200
+        b.append(f'<g class="risk-sign" style="transform-origin:{cx}px 144px">')
         b.append(f'<rect x="{cx - 2}" y="104" width="4" height="40" fill="#8a939c"/>')
         b.append(f'<rect x="{cx - 40}" y="32" width="80" height="80" rx="9" fill="{LANE}" stroke="{INK}" stroke-width="2.5" transform="rotate(45 {cx} 72)"/>')
         b.append(f'<rect x="{cx - 34}" y="38" width="68" height="68" rx="6" fill="none" stroke="{INK}" stroke-width="1.2" transform="rotate(45 {cx} 72)"/>')
-        b.append(icon(ic, cx, 72, 21, INK).replace('fill="#fff" stroke="#d8dee6"', f'fill="{LANE}" stroke="{LANE}"'))
+        b.append(icon(ic, cx, 72, 21, INK).replace('fill="#fff" stroke="#d8dee6"', f'fill="{LANE}" stroke="{LANE}"') + '</g>')
         b.append(text(cx, 168, t1, 13.5, INK, 700, "middle", HEAD))
         b.append(text(cx, 186, t2, 11.5, MUTED, 400, "middle"))
     return svg(W, H, "The five main risks", "".join(b))

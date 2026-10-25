@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building the FDL Platform</title>
+<meta name="description" content="Judah Rivera's FDL Lead Developer final assessment: the broken calculator fixed, and the full platform plan, timeline and cost estimate.">
+<style>
+:root {
+  --ink: #17232f; --muted: #5d6a77; --line: #d8dee6; --sky: #e3eff8; --road: #3b444e; --lane: #f4c430;
+  --sign: #1d6b48; --blue: #2a6f9e; --amber: #e39b2d; --red: #c4473a; --green: #2f8a57; --paper: #fff;
+  --ground: #f5f7f9; --night: #14202b; --m1: #2a6f9e; --m2: #2f8a57; --m3: #e39b2d; --m4: #b8742a; --m5: #c4473a;
+  --head: Bahnschrift, "DIN Alternate", "DIN Condensed", "Segoe UI", system-ui, sans-serif;
+  --body: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --wrap: 1160px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 17px/1.55 var(--body); overflow-x: hidden; }
+h1, h2, h3, .num, .tab, nav { font-family: var(--head); }
+h2 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; margin: 0 0 14px; letter-spacing: -.01em; }
+h3 { font-size: 21px; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+a { color: var(--blue); }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+section { padding: 96px 0; position: relative; }
+.lede { font-size: 19px; max-width: 46em; color: #2c3a47; }
+.small { font-size: 14px; color: var(--muted); }
+.stripe { width: 132px; height: 5px; margin: 0 0 22px;
+  background: repeating-linear-gradient(90deg, var(--lane) 0 22px, transparent 22px 34px); }
+svg text { font-family: var(--body); }
+
+/* nav */
+nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; gap: 22px; align-items: center; height: 54px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+nav b { font-size: 16px; margin-right: auto; }
+nav a { color: var(--ink); text-decoration: none; font-size: 15px; opacity: .75; }
+nav a:hover { opacity: 1; }
+
+/* hero */
+.hero { padding: 72px 0 0; background: linear-gradient(#cfe4f3, #f4f9fd 70%); overflow: hidden; }
+.who { font: 600 16px var(--head); color: var(--muted); margin-bottom: 14px; }
+.mask-title { position: relative; display: inline-block; font-size: clamp(48px, 9.5vw, 124px); line-height: .98;
+  margin: 0 0 22px; letter-spacing: -.02em; }
+.mask-title span { display: block; }
+.mask-title .outline { color: transparent; -webkit-text-stroke: 1.6px var(--ink); }
+.mask-title .fill { position: absolute; inset: 0; background: linear-gradient(180deg, #1d4f73 0%, var(--ink) 75%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mask-title .edge { position: absolute; left: -10px; right: -10px; height: 2px; background: var(--lane); }
+.mask-title .edge::before { content: ""; position: absolute; left: 0; top: -4px; width: 10px; height: 10px; background: var(--lane); }
+.cutline { overflow: hidden; }
+.cutline p { font-size: clamp(18px, 2.2vw, 23px); max-width: 34em; margin: 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 18px 48px; margin: 34px 0 10px; }
+.stat .num { font-size: clamp(30px, 4vw, 44px); font-weight: 700; line-height: 1.05; display: block; }
+.stat span { font-size: 15px; color: var(--muted); }
+.hero-road { display: block; width: 100%; height: auto; margin-top: 28px; }
+
+/* cards and tabs */
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 26px; }
+.tabs { position: relative; display: inline-flex; background: #eef2f6; border-radius: 12px; padding: 5px; margin-bottom: 18px; }
+.tab { position: relative; z-index: 1; border: 0; background: none; font-size: 16px; font-weight: 600; padding: 10px 18px;
+  cursor: pointer; color: var(--muted); border-radius: 9px; }
+.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pill { position: absolute; top: 5px; bottom: 5px; background: var(--ink); border-radius: 9px; }
+.speed { position: absolute; height: 2px; background: var(--ink); opacity: 0; }
+
+/* part 1 */
+.bug-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; align-items: start; }
+.ring-card { text-align: center; }
+.bug-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 36px; margin-top: 30px; }
+.bug-list div { padding: 14px 0; border-top: 1px solid var(--line); }
+.bug-list b { font-family: var(--head); font-size: 17px; }
+.bug-list .id { display: inline-block; min-width: 34px; color: var(--red); font-family: var(--head); font-weight: 700; }
+
+/* glance band */
+.band { background: var(--night); color: #fff; }
+.band .lede, .band .small { color: #b9c6d2; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 30px; }
+.kpi { border-top: 3px solid var(--lane); padding-top: 14px; }
+.kpi .num { font-size: clamp(30px, 3.6vw, 42px); font-weight: 700; display: block; line-height: 1.1; }
+.kpi span { color: #b9c6d2; font-size: 15px; }
+
+/* timeline */
+.tl-grid { display: grid; grid-template-columns: 1fr 270px; gap: 22px; }
+.scroll-x { overflow-x: auto; }
+.scroll-x svg { min-width: 720px; }
+.side h3 { font-size: 30px; margin-bottom: 4px; }
+.side .num { font-size: 34px; font-weight: 700; }
+.side dl { margin: 14px 0 0; }
+.side dt { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.side dd { margin: 0; font: 600 19px var(--head); }
+.swap { will-change: transform, opacity; }
+
+/* hours */
+.hours-grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin: 6px 0 10px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+#tip { position: fixed; z-index: 30; pointer-events: none; background: var(--ink); color: #fff; font-size: 14px; line-height: 1.4;
+  padding: 10px 12px; border-radius: 10px; max-width: 280px; opacity: 0; transition: opacity .12s; }
+#tip b { font-family: var(--head); font-size: 15px; }
+
+.figure svg { width: 100%; height: auto; display: block; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.sky { background: linear-gradient(#e3eff8, #f5f7f9); }
+ol.qs { padding-left: 22px; } ol.qs li { margin: 8px 0; }
+footer { background: var(--night); color: #b9c6d2; padding: 56px 0; font-size: 15px; }
+footer a { color: #fff; }
+footer b { color: #fff; font-family: var(--head); font-size: 20px; }
+
+.bug-grid > *, .tl-grid > *, .hours-grid > *, .two > * { min-width: 0; }
+@media (max-width: 860px) {
+  .card:has(> #bugChart), .card:has(> #ws), .card:has(> svg[id^="cost"]), .figure { overflow-x: auto; }
+  #bugChart { min-width: 560px; } #ws { min-width: 640px; } svg[id^="cost"] { min-width: 520px; }
+  #costOne { min-width: 760px; } .figure svg { min-width: 680px; }
+  .hero-road { width: 820px; max-width: none; }
+  section { padding: 64px 0; }
+  .wrap { padding: 0 16px; }
+  .bug-grid, .tl-grid, .hours-grid, .two, .bug-list { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  nav a { display: none; }
+  .card { padding: 18px; }
+}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><b>FDL final assessment</b>
+  <a href="#fix">Bug fix</a><a href="#timeline">Timeline</a><a href="#hours">Hours</a><a href="#team">Team</a>
+  <a href="#release">Releases</a><a href="#costs">Costs</a><a href="#risks">Risks</a></div></nav>
+
+<header class="hero" id="hero">
+  <div class="wrap">
+    <div class="who">Judah Rivera, Lead Developer final assessment, 26 October 2026</div>
+    <h1 class="mask-title" aria-label="Building the FDL platform">
+      <span class="outline" aria-hidden="true">Building the<br>FDL platform</span>
+      <span class="fill" aria-hidden="true">Building the<br>FDL platform</span>
+      <i class="edge" aria-hidden="true"></i>
+    </h1>
+    <div class="cutline"><p id="heroSub">The broken load calculator fixed, and a full plan for the platform: how many hours, how long, who does what and what it costs.</p></div>
+    <div class="stats">
+      <div class="stat"><b class="num" data-count="hours">0</b><span>hours to build everything, realistic</span></div>
+      <div class="stat"><b class="num" id="statV1"></b><span>version 1 for outside companies</span></div>
+      <div class="stat"><b class="num" id="statFull"></b><span>full platform with apps and AI</span></div>
+    </div>
+  </div>
+  <svg class="hero-road" viewBox="0 0 1200 230" role="img" aria-label="A car-hauler truck driving past the five milestone signs">
+    <path d="M0 150 Q160 96 330 122 T700 112 T1020 104 T1200 118 V150 H0 Z" fill="#cfe3d4"/>
+    <!--HERO_SIGNS-->
+    <!--HERO_FLAG-->
+    <rect x="0" y="150" width="1200" height="64" fill="#3b444e"/>
+    <rect x="0" y="153" width="1200" height="1.5" fill="#e9edf1"/><rect x="0" y="209" width="1200" height="1.5" fill="#e9edf1"/>
+    <line x1="0" y1="182" x2="1200" y2="182" stroke="#f4c430" stroke-width="3" stroke-dasharray="22 16"/>
+    <g id="heroTruck"><!--HERO_TRUCK--></g>
+    <rect x="0" y="214" width="1200" height="16" fill="#9fc9a8"/>
+  </svg>
+</header>
+
+<section id="fix">
+  <div class="wrap">
+    <h2>Part 1: the broken calculator, fixed</h2>
+    <div class="stripe"></div>
+    <p class="lede">Same load, same inputs, from the README: revenue $2,000, 500 miles, $4 fuel, 10 mpg, $400 driver pay, $50 tolls, 10% dispatch, $100 other costs, 20% target margin. The original code made fuel and the dispatch fee 100 times too high, so a profitable load looked like a big loss.</p>
+    <div class="bug-grid">
+      <div class="card">
+        <div class="tabs" role="tablist" id="bugTabs"><span class="pill"></span>
+          <button class="tab" role="tab" data-i="0">Original code</button><button class="tab" role="tab" data-i="1">Fixed code</button></div>
+        <svg id="bugChart" viewBox="0 0 640 330" role="img" aria-label="Calculator output before and after the fix"></svg>
+      </div>
+      <div class="card ring-card">
+        <h3>Tests passing</h3>
+        <svg id="ring" viewBox="0 0 240 240" width="220" height="220" role="img" aria-label="Tests passing: 1 of 5 before, 32 of 32 after"></svg>
+        <p class="small">Before: 5 tests, 1 passing, and that one by accident. After: 32 tests, all passing on Python 3.10 to 3.13. Your expected values were not changed.</p>
+      </div>
+    </div>
+    <div class="bug-list">
+      <div><span class="id">D1</span><b>Fuel</b> multiplied miles by mpg instead of dividing: $20,000 instead of $200.</div>
+      <div><span class="id">D2</span><b>Dispatch fee</b> treated 10% as 1000%: $20,000 instead of $200.</div>
+      <div><span class="id">D3</span><b>Margin</b> was measured against cost, not revenue, and crashed on a zero load.</div>
+      <div><span class="id">D4</span><b>Break-even rate</b> ignored the dispatch fee: $750 instead of $833.33.</div>
+      <div><span class="id">D5</span><b>Suggested rate</b> stacked the percentages and gave 18% margin, not 20%.</div>
+      <div><span class="id">D6</span><b>Input checks</b> let 0 mpg, negative costs, text and infinity through.</div>
+    </div>
+    <p class="small" style="margin-top:18px">Root causes, the rounding change and all test evidence: <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/SUBMISSION.md">SUBMISSION.md</a>.</p>
+  </div>
+</section>
+
+<section class="band" id="glance">
+  <div class="wrap">
+    <h2>Part 2: the platform plan, at a glance</h2>
+    <div class="stripe"></div>
+    <p class="lede">Every number on this page comes from one script, <a style="color:#fff" href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/plan/estimate_model.py">estimate_model.py</a>. Change an assumption and the hours, dates and costs move together.</p>
+    <div class="kpis" id="kpis">
+      <div class="kpi"><b class="num" data-count="hours">0</b><span>hours, realistic (range <span id="hRange"></span>)</span></div>
+      <div class="kpi"><b class="num" id="kPilot"></b><span>internal pilot on the owner's own company</span></div>
+      <div class="kpi"><b class="num" id="kV1"></b><span>version 1 outside companies can buy</span></div>
+      <div class="kpi"><b class="num" id="kBuild"></b><span>a month in tools while building, salaries not included</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="wrap">
+    <h2>Three possible roads to the full platform</h2>
+    <div class="stripe"></div>
+    <p class="lede">Nine phases, five milestones. The realistic case assumes a start on <span id="startDate"></span> with a Lead Developer, a Technical Assistant and a mobile contractor for the native apps. Pick a scenario.</p>
+    <div class="tl-grid">
+      <div class="card">
+        <div class="tabs" role="tablist" id="scTabs"><span class="pill"></span>
+          <button class="tab" role="tab" data-i="0">Realistic</button><button class="tab" role="tab" data-i="1">Optimistic</button><button class="tab" role="tab" data-i="2">Conservative</button></div>
+        <div class="scroll-x"><svg id="gantt" viewBox="0 0 900 380" role="img" aria-label="Phase timeline for the selected scenario"></svg></div>
+      </div>
+      <div class="card side" id="scSide"><div class="swap">
+        <h3 id="scName"></h3><p class="small" id="scNote"></p>
+        <dl><dt>Total hours</dt><dd id="scHours"></dd><dt>Internal pilot (M1)</dt><dd id="scM1"></dd>
+          <dt>Version 1 (M2)</dt><dd id="scM2"></dd><dt>Full platform (M5)</dt><dd id="scM5"></dd></dl></div>
+        <p class="small" style="margin-top:18px">A second developer from M2 brings the realistic finish forward by about 13 weeks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sky" id="hours">
+  <div class="wrap">
+    <h2>Where the hours go</h2>
+    <div class="stripe"></div>
+    <p class="lede">25 workstreams, each estimated low, likely and high. The Lead keeps security, money rules and integrations; the Technical Assistant builds screens, forms and tests from small tickets.</p>
+    <div class="hours-grid">
+      <div class="card"><h3>Who does the hours</h3><svg id="donut" viewBox="0 0 300 300" role="img" aria-label="Realistic hours by person"></svg>
+        <div class="legend" id="donutLegend"></div></div>
+      <div class="card"><h3>Hours by workstream</h3>
+        <div class="legend" id="wsLegend"></div>
+        <svg id="ws" viewBox="0 0 760 640" role="img" aria-label="Low, likely and high hours for each of the 25 workstreams"></svg>
+        <p class="small">Bar = low to high estimate, dot = likely. Hover a row for details.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <h2>Who does what</h2>
+    <div class="stripe"></div>
+    <p class="lede">The owner owns every account and approves every release. The Lead builds the hard and risky parts and reviews all code. The TA works from half-day tickets with acceptance criteria and has no production access.</p>
+    <div class="card figure"><!--TEAM--></div>
+  </div>
+</section>
+
+<section class="sky" id="release">
+  <div class="wrap">
+    <h2>Nothing reaches production by accident</h2>
+    <div class="stripe"></div>
+    <p class="lede">Protected main branch, automated tests, a human review of every change, and the owner's yes on the release notes. Backups before every database change, and an audit log of who changed what.</p>
+    <div class="card figure" id="gates"><!--GATES--></div>
+    <div class="card figure" style="margin-top:22px"><h3>When something breaks</h3><!--SEVERITY--></div>
+  </div>
+</section>
+
+<section id="costs">
+  <div class="wrap">
+    <h2>What the technology costs</h2>
+    <div class="stripe"></div>
+    <p class="lede">About <b id="cBuild"></b> a month while building and about <b id="cLive"></b> a month once live with first customers. One-time and outside-people costs: <b id="cOne"></b> over the project. Lead and TA salaries are not included.</p>
+    <div class="two">
+      <div class="card"><h3>Monthly, while building</h3><svg id="costBuild" viewBox="0 0 520 300" role="img" aria-label="Monthly costs while building, low to high"></svg></div>
+      <div class="card"><h3>Monthly, added once live</h3><svg id="costLive" viewBox="0 0 520 330" role="img" aria-label="Monthly costs added when live, low to high"></svg></div>
+    </div>
+    <div class="card" style="margin-top:22px"><h3>One-time and outside people</h3><svg id="costOne" viewBox="0 0 1060 230" role="img" aria-label="One-time and outside-people costs, low to high"></svg></div>
+  </div>
+</section>
+
+<section class="sky" id="risks">
+  <div class="wrap">
+    <h2>The five risks I would watch first</h2>
+    <div class="stripe"></div>
+    <div class="card figure"><!--RISKS--></div>
+    <div class="two" style="margin-top:22px">
+      <div class="card"><h3>How I would handle them</h3>
+        <p><b>Outside APIs:</b> discovery starts in phase 3, each integration sits behind one adapter so a provider can be swapped.</p>
+        <p><b>Existing Replit project:</b> a phase 0 inventory, shown live, before any estimate is final.</p>
+        <p><b>Scope:</b> each phase has a fixed scope; new ideas go to a backlog the owner ranks at milestone reviews.</p>
+        <p><b>Data isolation:</b> enforced in the code and in the database, tested on every change, external test before M2.</p>
+        <p style="margin:0"><b>AI accuracy:</b> measure the straight-through rate from day one and route unsure documents to a review queue.</p></div>
+      <div class="card"><h3>Questions for the owner</h3>
+        <ol class="qs">
+          <li>Sections 3 (User Roles and Permissions) and C (Acceptance Criteria) have headings but no content in my copy. Could I see them?</li>
+          <li>The Master Sheet charges the dispatch fee on linehaul revenue only, the calculator on total revenue. Which should the product use?</li>
+          <li>Who uses the platform first: only Family Auto Transportation, or outside carriers early?</li>
+          <li>Which ELD, load board, factoring and accounting tools are in use today?</li>
+        </ol>
+        <p class="small" style="margin:0">All 8 questions are in <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/PLAN.md">PLAN.md</a>.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  <b>Judah Rivera</b>
+  <p style="margin-top:8px">FDL Lead Developer final assessment, 26 October 2026.<br>
+  Full detail: <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/SUBMISSION.md">SUBMISSION.md</a> (the bug fix),
+  <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/PLAN.md">PLAN.md</a> (the plan and all tables),
+  <a href="https://github.com/agentxxblue14/fdl-final-assessment/blob/main/plan/estimate_model.py">estimate_model.py</a> (where every number comes from).</p>
+  <p style="margin:0">Dates assume a start on <span class="startDate"></span> and move with the real start date. Costs are approximate list prices to check before purchase.</p>
+</div></footer>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const D = /*DATA*/;
+const NS = "http://www.w3.org/2000/svg";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const ease = t => (t = clamp(t), t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const back = t => { t = clamp(t); const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const money = v => (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: Math.abs(v) % 1 ? 2 : 0, maximumFractionDigits: 2 });
+const mix = (a, b, p) => { const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  const x = h(a), y = h(b); return `rgb(${x.map((v, i) => Math.round(lerp(v, y[i], p))).join(",")})`; };
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const MC = [1, 2, 3, 4, 5].map(i => css(`--m${i}`));
+const REAL = D.scenarios.Realistic;
+const ORDER = ["Realistic", "Optimistic", "Conservative"];
+
+/* ---------- one clock for every effect ---------- */
+const params = new URLSearchParams(location.search);
+const FROZEN = params.has("render") || params.has("t");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const effects = [];
+const io = new IntersectionObserver(entries => entries.forEach(en => {
+  const e = effects.find(x => x.root === en.target);
+  e.visible = en.isIntersecting;
+  if (e.visible && e.t0 === null) e.t0 = performance.now();
+}), { threshold: .25 });
+function effect(root, period, draw) {
+  const e = { root, period, draw, t0: null, visible: false, manual: null };
+  effects.push(e); io.observe(root); return e;
+}
+const timeOf = e => (performance.now() - e.t0) / 1000;
+window.seek = s => effects.forEach(e => e.draw(e.period ? s % e.period : s, true));
+function tick() {
+  effects.forEach(e => { if (e.visible && e.t0 !== null) { const t = timeOf(e); e.draw(e.period ? t % e.period : t); } });
+  requestAnimationFrame(tick);
+}
+
+/* ---------- stretchy tab pill (effect 04) ---------- */
+function pillRects(tabs) {
+  const box = tabs.getBoundingClientRect();
+  return $$(".tab", tabs).map(b => { const r = b.getBoundingClientRect(); return [r.left - box.left, r.right - box.left]; });
+}
+function drawPill(tabs, from, to, p) {
+  const r = pillRects(tabs), a = r[from], b = r[to], right = to > from;
+  const lead = ease(p / .8), trail = ease((p - .2) / .8);
+  const L = lerp(a[0], b[0], right ? trail : lead), R = lerp(a[1], b[1], right ? lead : trail);
+  const pill = $(".pill", tabs);
+  pill.style.left = L + "px"; pill.style.width = (R - L) + "px";
+  $$(".tab", tabs).forEach((t, i) => {
+    const cover = clamp((Math.min(R, r[i][1]) - Math.max(L, r[i][0])) / (r[i][1] - r[i][0]));
+    t.style.color = mix("#5d6a77", "#ffffff", cover);
+    t.setAttribute("aria-selected", (p < .5 ? from : to) === i);
+  });
+}
+
+/* ---------- hero: masked type (effect 09), signs, truck ---------- */
+function setupHero() {
+  const title = $(".mask-title"), fill = $(".fill", title), edge = $(".edge", title), sub = $("#heroSub");
+  const signs = $$(".hero-sign"), truck = $("#heroTruck"), counters = $$('[data-count="hours"]', $("#hero"));
+  $("#statV1").textContent = REAL.milestones[1].date;
+  $("#statFull").textContent = REAL.milestones[4].date;
+  effect($("#hero"), 0, t => {
+    const p = ease(t / 1.35), h = title.offsetHeight;
+    fill.style.clipPath = `inset(${(1 - p) * 100}% 0 0 0)`;
+    edge.style.top = (1 - p) * h + "px";
+    edge.style.opacity = 1 - clamp((t - 1.35) / .3);
+    sub.style.transform = `translateY(${(1 - ease((t - .95) / .8)) * 110}%)`;
+    counters.forEach(c => c.textContent = fmt(REAL.total * ease((t - 1.1) / 1.4)));
+    signs.forEach((s, i) => {
+      const k = back((t - 1.0 - i * .18) / .55), x = +s.dataset.x;
+      s.setAttribute("transform", `translate(${x} 150) scale(${Math.max(k, 0.001)}) translate(${-x} -150)`);
+    });
+    const loop = (t % 8) / 8;
+    truck.setAttribute("transform", `translate(${lerp(-260, 1210, loop)} 0)`);
+  });
+}
+
+/* ---------- part 1: bar morph original to fixed ---------- */
+function setupBugs() {
+  const svg = $("#bugChart"), tabs = $("#bugTabs");
+  const rows = [["Fuel cost", "fuel_cost"], ["Dispatch fee", "dispatch_fee"], ["Total cost", "total_cost"],
+    ["Profit", "profit"], ["Margin", "margin_pct"], ["Break-even rate", "break_even_rate"], ["Suggested rate", "suggested_rate"]];
+  const X0 = 330, k = 200 / 40550, axis = el("g", {}, svg);
+  el("line", { x1: X0, y1: 10, x2: X0, y2: 316, stroke: "#9aa3ab", "stroke-width": 1.5 }, axis);
+  const items = rows.map(([lab, key], i) => {
+    const y = 22 + i * 43;
+    txt(svg, 0, y + 18, lab, { "font-size": 15, fill: "#17232f" });
+    const bar = el("rect", { y, height: 26, rx: 5 }, svg);
+    const val = txt(svg, 0, y + 19, "", { "font-size": 15, "font-weight": 700, "font-family": css("--head") });
+    return { key, bar, val };
+  });
+  const O = D.bugs.original, F = D.bugs.fixed;
+  function render(ps) {
+    items.forEach((it, i) => {
+      const p = ps[i], o = O[it.key], f = F[it.key], v = lerp(o, f, p), pct = it.key === "margin_pct";
+      const w = pct ? Math.abs(v) * 1.4 : Math.abs(v) * k, x = v < 0 ? X0 - w : X0;
+      it.bar.setAttribute("x", x); it.bar.setAttribute("width", Math.max(w, 2));
+      it.bar.setAttribute("fill", mix("#c4473a", "#2f8a57", p));
+      it.val.textContent = pct ? v.toFixed(2) + "%" : money(Math.round(v * 100) / 100);
+      it.val.setAttribute("fill", mix("#c4473a", "#2f8a57", p));
+      it.val.setAttribute("text-anchor", v < 0 ? "end" : "start");
+      it.val.setAttribute("x", v < 0 ? X0 - w - 8 : X0 + w + 8);
+    });
+  }
+  const ring = $("#ring");
+  el("circle", { cx: 120, cy: 120, r: 92, fill: "none", stroke: "#e3eff8", "stroke-width": 20 }, ring);
+  const arc = el("circle", { cx: 120, cy: 120, r: 92, fill: "none", "stroke-width": 20, "stroke-linecap": "round",
+    transform: "rotate(-90 120 120)", "stroke-dasharray": `${2 * Math.PI * 92}` }, ring);
+  const rt = txt(ring, 120, 128, "", { "text-anchor": "middle", "font-size": 40, "font-weight": 700, "font-family": css("--head"), fill: "#17232f" });
+  const rs = txt(ring, 120, 156, "", { "text-anchor": "middle", "font-size": 15, fill: "#5d6a77" });
+  function renderRing(p) {
+    const pass = Math.round(lerp(1, 32, p)), total = Math.round(lerp(5, 32, p)), C = 2 * Math.PI * 92;
+    arc.setAttribute("stroke-dashoffset", C * (1 - lerp(.2, 1, p)));
+    arc.setAttribute("stroke", mix("#c4473a", "#2f8a57", p));
+    rt.textContent = `${pass} of ${total}`; rs.textContent = p < .5 ? "original code" : "fixed code";
+  }
+  const e = effect(svg.closest(".bug-grid"), 8, (t) => {
+    let ps, pp, from = 0, to = 1;
+    if (e.manual) {
+      const m = e.manual, q = ease((performance.now() - m.t0) / 1000);
+      ps = rows.map(() => lerp(m.from, m.to, q)); pp = q; from = m.from; to = m.to;
+    } else if (t < 6.6) {
+      ps = rows.map((_, i) => ease((t - i * .12) / 1.2)); pp = clamp(t / 1.2);
+    } else {
+      const q = ease((t - 6.6) / 1.4); ps = rows.map(() => 1 - q); pp = q; from = 1; to = 0;
+    }
+    render(ps); renderRing(ps[ps.length - 1]); drawPill(tabs, from, to, pp);
+  });
+  $$(".tab", tabs).forEach(b => b.addEventListener("click", () => {
+    const to = +b.dataset.i, cur = e.manual ? e.manual.to : 1;
+    e.manual = { from: to === cur ? 1 - to : cur, to, t0: performance.now() - (to === cur || FROZEN || REDUCED ? 1000 : 0) };
+    if (FROZEN || REDUCED) e.draw(0);
+  }));
+}
+
+/* ---------- glance band ---------- */
+function setupGlance() {
+  $("#hRange").textContent = `${fmt(D.scenarios.Optimistic.total)} to ${fmt(D.scenarios.Conservative.total)}`;
+  $("#kPilot").textContent = REAL.milestones[0].date; $("#kV1").textContent = REAL.milestones[1].date;
+  $("#kBuild").textContent = D.costs.buildTotal;
+  const c = $('[data-count="hours"]', $("#kpis"));
+  const kpis = $$(".kpi", $("#kpis"));
+  effect($("#kpis"), 0, t => {
+    c.textContent = fmt(REAL.total * ease(t / 1.6));
+    kpis.forEach((k, i) => k.style.borderTopColor = mix("#3b444e", "#f4c430", ease((t - i * .15) / .6)));
+  });
+}
+
+/* ---------- timeline: scenario tabs over a phase chart ---------- */
+function setupGantt() {
+  const svg = $("#gantt"), tabs = $("#scTabs");
+  const X0 = 190, X1 = 880, MAXW = 160, x = w => X0 + (X1 - X0) * w / MAXW;
+  const startDate = new Date(2026, 10, 9);
+  for (const yr of [2027, 2028, 2029]) {
+    const w = (new Date(yr, 0, 1) - startDate) / 6048e5;
+    if (w < 12) continue;
+    el("line", { x1: x(w), y1: 64, x2: x(w), y2: 352, stroke: "#d8dee6", "stroke-dasharray": "3 4" }, svg);
+    txt(svg, x(w), 372, `1 Jan ${yr}`, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  }
+  txt(svg, X0, 372, D.start, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  const shades = ["#9ab8cf", "#7ea4c2", "#2a6f9e", "#2f8a57", "#226b45", "#e39b2d", "#c9822a", "#c4473a"];
+  const rows = REAL.phases.map((ph, i) => {
+    const y = 72 + i * 31;
+    txt(svg, 0, y + 17, `${ph.phase}  ${ph.name}`, { "font-size": 14, fill: "#17232f" });
+    return { bar: el("rect", { y, height: 22, rx: 5, fill: shades[i] }, svg) };
+  });
+  const yApps = 72 + 8 * 31;
+  txt(svg, 0, yApps + 17, "8  Native apps", { "font-size": 14, fill: "#17232f" });
+  const apps = el("rect", { y: yApps, height: 22, rx: 5, fill: "none", stroke: "#e39b2d", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
+  const ms = REAL.milestones.map((_, i) => {
+    const g = el("g", {}, svg);
+    el("line", { x1: 0, y1: 50, x2: 0, y2: 352, stroke: "#1d6b48", "stroke-width": 1.2, "stroke-dasharray": "2 4" }, g);
+    el("rect", { x: -17, y: 26, width: 34, height: 24, rx: 5, fill: "#1d6b48", stroke: "#fff", "stroke-width": 1.5 }, g);
+    txt(g, 0, 43, `M${i + 1}`, { "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: "#fff", "font-family": css("--head") });
+    return g;
+  });
+  const pulse = el("circle", { r: 0, fill: "none", stroke: "#1d6b48", "stroke-width": 2 }, svg);
+  const side = $("#scSide .swap");
+  let shownName = null;
+  function setSide(name) {
+    if (shownName === name) return; shownName = name;
+    const s = D.scenarios[name];
+    $("#scName").textContent = name; $("#scNote").textContent = s.note;
+    $("#scHours").textContent = `${fmt(s.total)} h`;
+    $("#scM1").textContent = s.milestones[0].date; $("#scM2").textContent = s.milestones[1].date;
+    $("#scM5").textContent = s.milestones[4].date;
+  }
+  function render(a, b, p, t) {
+    const A = D.scenarios[ORDER[a]], B = D.scenarios[ORDER[b]];
+    rows.forEach((r, i) => {
+      const q = ease((p * 1.4 - i * .05)), s = lerp(A.phases[i].start, B.phases[i].start, q), e = lerp(A.phases[i].end, B.phases[i].end, q);
+      r.bar.setAttribute("x", x(s)); r.bar.setAttribute("width", Math.max(x(e) - x(s) - 2, 2));
+    });
+    const q = ease(p);
+    apps.setAttribute("x", x(lerp(A.apps.start, B.apps.start, q)));
+    apps.setAttribute("width", x(lerp(A.apps.end, B.apps.end, q)) - x(lerp(A.apps.start, B.apps.start, q)) - 2);
+    ms.forEach((g, i) => g.setAttribute("transform", `translate(${x(lerp(A.milestones[i].week, B.milestones[i].week, q))} 0)`));
+    const m5 = x(lerp(A.milestones[4].week, B.milestones[4].week, q)), ph = (t % 2) / 2;
+    pulse.setAttribute("cx", m5); pulse.setAttribute("cy", 38); pulse.setAttribute("r", 14 + ph * 16);
+    pulse.setAttribute("opacity", p >= 1 ? (1 - ph) * .6 : 0);
+    setSide(ORDER[p < .5 ? a : b]);
+    const d = p < .5 ? p * 2 : (1 - p) * 2;
+    side.style.opacity = 1 - d; side.style.transform = `translateX(${(p < .5 ? -1 : 1) * d * 15}px)`;
+    drawPill(tabs, a, b, p);
+  }
+  const e = effect(svg.closest(".tl-grid"), 24, (t) => {
+    if (e.manual) {
+      const m = e.manual; render(m.from, m.to, clamp((performance.now() - m.t0) / 1000), timeOf(e));
+      return;
+    }
+    const k = Math.floor(t / 8), local = t % 8;
+    if (local < 6.6) render(k, k, 1, local); else render(k, (k + 1) % 3, clamp((local - 6.6) / 1.2), local);
+  });
+  $$(".tab", tabs).forEach(b => b.addEventListener("click", () => {
+    const to = +b.dataset.i, from = e.manual ? e.manual.to : ORDER.indexOf(shownName);
+    e.manual = { from, to, t0: performance.now() - (FROZEN || REDUCED ? 1000 : 0) };
+    if (FROZEN || REDUCED) e.draw(0);
+  }));
+}
+
+/* ---------- hours: donut and workstream ranges ---------- */
+function setupHours() {
+  const svg = $("#donut"), parts = [["Lead", REAL.lead, "#2a6f9e"], ["Technical Assistant", REAL.ta, "#2f8a57"], ["Mobile contractor", REAL.contractor, "#e39b2d"]];
+  const C = 2 * Math.PI * 105, arcs = [];
+  let acc = 0;
+  parts.forEach(([name, h, col]) => {
+    arcs.push({ a: el("circle", { cx: 150, cy: 150, r: 105, fill: "none", stroke: col, "stroke-width": 38,
+      transform: `rotate(${-90 + acc / REAL.total * 360} 150 150)`, "stroke-dasharray": `0 ${C}` }, svg), len: h / REAL.total * C - 3 });
+    acc += h;
+    $("#donutLegend").insertAdjacentHTML("beforeend", `<span><i style="background:${col}"></i>${name} <b>${fmt(h)} h</b></span>`);
+  });
+  const ct = txt(svg, 150, 152, "", { "text-anchor": "middle", "font-size": 36, "font-weight": 700, "font-family": css("--head"), fill: "#17232f" });
+  txt(svg, 150, 178, "hours, realistic", { "text-anchor": "middle", "font-size": 14, fill: "#5d6a77" });
+  effect($("#donut").closest(".hours-grid"), 0, t => {
+    arcs.forEach((r, i) => r.a.setAttribute("stroke-dasharray", `${r.len * ease((t - i * .35) / 1)} ${C}`));
+    ct.textContent = fmt(REAL.total * ease(t / 1.7));
+  });
+
+  const ws = $("#ws"), list = [...D.workstreams].sort((a, b) => a.milestone - b.milestone || b.likely - a.likely);
+  D.milestoneNames.forEach((n, i) => $("#wsLegend").insertAdjacentHTML("beforeend", `<span><i style="background:${MC[i]}"></i>M${i + 1} ${n}</span>`));
+  const X0 = 300, x = h => X0 + (750 - X0) * h / 900;
+  for (let h = 0; h <= 800; h += 200) {
+    el("line", { x1: x(h), y1: 0, x2: x(h), y2: 612, stroke: "#e6ebf0" }, ws);
+    txt(ws, x(h), 632, h, { "text-anchor": "middle", "font-size": 13, fill: "#5d6a77" });
+  }
+  const tip = $("#tip");
+  const rows = list.map((w, i) => {
+    const y = 6 + i * 24.2, col = MC[w.milestone - 1];
+    const g = el("g", { tabindex: 0 }, ws);
+    el("rect", { x: 0, y: y - 2, width: 760, height: 23, fill: "transparent" }, g);
+    txt(g, 0, y + 14, `${w.id}. ${w.name.split(" (")[0]}`, { "font-size": 13, fill: "#17232f" });
+    const bar = el("rect", { y: y + 5, height: 9, rx: 4.5, fill: col, opacity: .3 }, g);
+    const dot = el("circle", { cy: y + 9.5, r: 0, fill: col }, g);
+    const show = ev => {
+      tip.innerHTML = `<b>${w.name}</b><br>${w.low} / ${w.likely} / ${w.high} h (low / likely / high)<br>` +
+        `${w.lead === null ? "Mobile contractor" : `Lead ${Math.round(w.lead * 100)}%, TA ${Math.round((1 - w.lead) * 100)}%`}<br>Milestone M${w.milestone}`;
+      const r = (ev.clientX ? ev : g.getBoundingClientRect());
+      tip.style.left = Math.min((ev.clientX || r.left) + 14, innerWidth - 300) + "px";
+      tip.style.top = ((ev.clientY || r.top) + 14) + "px"; tip.style.opacity = 1;
+    };
+    g.addEventListener("mousemove", show); g.addEventListener("focus", show);
+    g.addEventListener("mouseleave", () => tip.style.opacity = 0); g.addEventListener("blur", () => tip.style.opacity = 0);
+    return { w, bar, dot };
+  });
+  effect(ws, 0, t => rows.forEach((r, i) => {
+    const p = ease((t - i * .045) / .9), lo = lerp(r.w.likely, r.w.low, p), hi = lerp(r.w.likely, r.w.high, p);
+    r.bar.setAttribute("x", x(lo)); r.bar.setAttribute("width", Math.max(x(hi) - x(lo), 0.1));
+    r.dot.setAttribute("cx", x(r.w.likely)); r.dot.setAttribute("r", 5.5 * back((t - i * .045) / .5));
+  }));
+}
+
+/* ---------- release gates: the truck lifts each barrier (flowing path) ---------- */
+function setupGates() {
+  const root = $("#gates"), svg = $("svg", root), arms = $$(".gate-arm", svg), truck = $(".gate-truck", svg);
+  const vault = el("circle", { cx: 905, cy: 126, r: 30, fill: "none", stroke: "#f4c430", "stroke-width": 4, opacity: 0 }, svg);
+  effect(root, 8, t => {
+    const drive = ease(t / 6), dx = lerp(0, 790, drive), front = 8 + 88 + dx;
+    const leave = clamp((t - 6) / .5), back_in = clamp((t - 7.3) / .7);
+    truck.setAttribute("transform", `translate(${t < 7.3 ? dx : 0} 0)`);
+    truck.style.opacity = t < 7.3 ? 1 - leave : back_in;
+    arms.forEach(a => {
+      const gx = +a.dataset.x, gy = +a.dataset.y;
+      const up = clamp((front - (gx - 130)) / 60), down = ease((t - 6.6) / 1.2);
+      a.setAttribute("transform", `rotate(${-62 * ease(up) * (1 - down)} ${gx} ${gy})`);
+    });
+    const glow = clamp((t - 5.6) / .4) * (1 - clamp((t - 6.9) / .8));
+    vault.setAttribute("opacity", glow); vault.setAttribute("r", 30 + 8 * glow);
+  });
+}
+
+/* ---------- costs: low to high range bars ---------- */
+function rangeChart(svg, items, max, step, labelW, unit) {
+  const W = +svg.getAttribute("viewBox").split(" ")[2], x = v => labelW + (W - labelW - 150) * v / max;
+  const H = +svg.getAttribute("viewBox").split(" ")[3];
+  for (let v = 0; v <= max; v += step) {
+    el("line", { x1: x(v), y1: 0, x2: x(v), y2: H - 24, stroke: "#e6ebf0" }, svg);
+    txt(svg, x(v), H - 6, `$${fmt(v)}`, { "text-anchor": "middle", "font-size": 12, fill: "#5d6a77" });
+  }
+  const rows = items.map((it, i) => {
+    const y = 8 + i * 32, name = it.name.split(" (")[0].split(";")[0];
+    const lines = [""]; name.split(" ").forEach(w => (lines[lines.length - 1] + " " + w).trim().length > 27 && lines.length < 2
+      ? lines.push(w) : lines[lines.length - 1] = (lines[lines.length - 1] + " " + w).trim());
+    lines.forEach((l, j) => txt(svg, 0, y + (lines.length === 1 ? 15 : 9 + j * 14), l, { "font-size": 12.5, fill: "#17232f" }));
+    const bar = el("rect", { y: y + 4, height: 14, rx: 7, fill: "#2a6f9e" }, svg);
+    const val = txt(svg, 0, y + 16, `${money(it.low)} to ${money(it.high)}${unit}`, { "font-size": 12.5, "font-weight": 700, fill: "#17232f", "font-family": css("--head") });
+    return { it, bar, val };
+  });
+  effect(svg, 0, t => rows.forEach((r, i) => {
+    const p = ease((t - i * .08) / .9), hi = lerp(r.it.low, r.it.high, p);
+    r.bar.setAttribute("x", x(r.it.low) - 2); r.bar.setAttribute("width", Math.max(x(hi) - x(r.it.low) + 4, 4));
+    r.bar.setAttribute("opacity", clamp((t - i * .08) / .3));
+    r.val.setAttribute("x", x(hi) + 10); r.val.setAttribute("opacity", clamp((t - i * .08 - .6) / .4));
+  }));
+}
+function setupCosts() {
+  $("#cBuild").textContent = D.costs.buildTotal; $("#cLive").textContent = D.costs.liveTotal; $("#cOne").textContent = D.costs.oneTimeTotal;
+  rangeChart($("#costBuild"), D.costs.build, 400, 100, 210, "");
+  rangeChart($("#costLive"), D.costs.live, 200, 50, 210, "");
+  rangeChart($("#costOne"), D.costs.oneTime, 52000, 10000, 260, "");
+}
+
+/* ---------- risks: signs swing in ---------- */
+function setupRisks() {
+  const signs = $$(".risk-sign");
+  effect($("#risks .figure"), 0, t => signs.forEach((s, i) => {
+    const u = clamp(t - .1 - i * .16, 0, 3);
+    s.style.transform = `rotate(${-28 * Math.exp(-3.2 * u) * Math.cos(7 * u)}deg)`;
+  }));
+}
+
+$$(".startDate, #startDate").forEach(s => s.textContent = D.start);
+setupHero(); setupBugs(); setupGlance(); setupGantt(); setupHours(); setupGates(); setupCosts(); setupRisks();
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  if (FROZEN || REDUCED) {
+    const s = params.has("t") ? +params.get("t") : 4.4;
+    effects.forEach(e => { e.t0 = 0; e.visible = true; });
+    window.seek(s);
+  } else {
+    window.seek(0); requestAnimationFrame(tick);
+  }
+});
+</script>
+</body>
+</html>
