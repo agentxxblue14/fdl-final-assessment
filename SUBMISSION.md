@@ -11,10 +11,12 @@ The calculator had **6 bugs**. It overstated fuel 100 times, charged a 10% dispa
 
 Before: 5 tests, 1 passing (by accident). After: **32 tests, all passing**, on Python 3.10 to 3.13. Your expected values were not changed.
 
+![Before and after the fix, on the README example load](docs/bugs.svg)
+
 This repo has two parts:
 
 1. **The corrected calculator**: `profitability.py`, your original tests (unchanged), 27 new tests in `test_edge_cases.py`, and the test output in `evidence/`.
-2. **The plan, timeline and cost estimate for the whole platform**: [`PLAN.md`](PLAN.md), with the estimate model in [`plan/estimate_model.py`](plan/estimate_model.py).
+2. **The plan, timeline and cost estimate for the whole platform**: [`PLAN.md`](PLAN.md), with the estimate model in [`plan/estimate_model.py`](plan/estimate_model.py). The drawings in `docs/` are generated from the same numbers by [`plan/figures.py`](plan/figures.py).
 
 The git history shows the work in order: the first commit is your files exactly as received, the next commits are the fix, the tests and the plan.
 

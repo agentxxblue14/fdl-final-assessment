@@ -3,9 +3,11 @@
 Prepared by Judah Rivera for the Lead Developer final assessment, 26 October 2026.
 Based on: FDL Technical Master Sheet, Candidate Edition (extract of Master Feature Specification v6, 23 October 2026).
 
-All hours, dates and cost totals below come from one script, [`plan/estimate_model.py`](plan/estimate_model.py). Change an assumption there (start date, weekly capacity, who does what, contingency) and rerun it to see how the calendar moves. Milestone dates are the Friday of the week the work finishes.
+All hours, dates and cost totals below come from one script, [`plan/estimate_model.py`](plan/estimate_model.py), and the drawings are generated from the same numbers by [`plan/figures.py`](plan/figures.py). Change an assumption there (start date, weekly capacity, who does what, contingency) and rerun it to see how the calendar moves. Milestone dates are the Friday of the week the work finishes.
 
 ## The short answer
+
+![At a glance: 6,824 hours, pilot 30 April 2027, version 1 12 November 2027, full platform 20 October 2028, monthly costs](docs/glance.svg)
 
 | Question | Answer |
 |---|---|
@@ -90,6 +92,8 @@ What each workstream includes, its dependencies, staff and milestone are in the 
 
 ### Milestones
 
+![Realistic roadmap with phases and milestones](docs/roadmap.svg)
+
 | Milestone | What the owner gets | Optimistic | Realistic | Conservative |
 |---|---|---|---|---|
 | **M1 Internal pilot** | Dispatch, loads, drivers, fleet, customers, documents and POD, driver phone screens, in-app alerts. First on fictional data, then on the owner's own company after his approval. | week 13, 5 Feb 2027 | **week 25, 30 Apr 2027** | week 39, 6 Aug 2027 |
@@ -97,6 +101,8 @@ What each workstream includes, its dependencies, staff and milestone are in the 
 | **M3 Tracking and fleet compliance** | GPS tracking and maps, maintenance, DOT inspections, DVIR, driver scorecard. | week 34, 2 Jul 2027 | **week 65, 4 Feb 2028** | week 99, 29 Sep 2028 |
 | **M4 Automated back office** | Rate-confirmation intake, document reading, invoicing and factoring packages, exception queue, accounting exports, IFTA support. | week 43, 3 Sep 2027 | **week 84, 16 Jun 2028** | week 130, 4 May 2029 |
 | **M5 Full platform** | Load-board access with AI outreach, broker and repair intelligence, unified communications and AI analysis, native iOS and Android apps. | week 52, 5 Nov 2027 | **week 102, 20 Oct 2028** | week 158, 16 Nov 2029 |
+
+![Optimistic, realistic and conservative timelines](docs/scenarios.svg)
 
 If the owner wants M5 sooner, the most effective lever is a second full-stack developer from M2 (28 productive hours a week, 4 weeks at half speed to ramp up, mostly on Lead-type work). On the realistic case that brings M5 forward by about **13 weeks**, from 20 October 2028 to about 21 July 2028. Adding people before the foundations are stable would slow things down, not speed them up.
 
@@ -124,10 +130,12 @@ Critical path: Discovery, then Foundations, then Loads, then Accounting, then th
 |---|---|---|
 | Existing Replit project "FAMILY DISPATCH" (Stage 1 demo, sample data) | **Not verified.** I have not seen its code. The Master Sheet says not to assume any screen is backed by a database or production-ready. | Phase 0 inventory, live demo of each feature, written classification. No rebuild without a written reason and owner approval. |
 | My first-round assessment prototype (github.com/agentxxblue14/family-dispatch-assessment) | A prototype, not a product. It proves the company-separation design (a filter in the code plus rules inside the database, each tested with the other switched off). | Reuse the design and the tests as a reference for Phase 1, not as a codebase to ship. |
-| Load profitability formulas | Fixed and tested in this assessment (`profitability.py`, 29 tests). | Port the same rules into the shared calculation service in Phase 3, with the same tests. |
+| Load profitability formulas | Fixed and tested in this assessment (`profitability.py`, 32 tests). | Port the same rules into the shared calculation service in Phase 3, with the same tests. |
 | Third-party APIs (ELD, load boards, factoring, phone/text, QuickBooks/Xero, maps) | **Need discovery.** Access, pricing and terms unknown. | Discovery is estimated inside each workstream. No integration is attempted without approved credentials. |
 
 ## Who does what: Lead Developer and Technical Assistant
+
+![Who does what: owner, Lead, Technical Assistant and mobile contractor](docs/team.svg)
 
 | Area | Lead Developer | Technical Assistant |
 |---|---|---|
@@ -156,13 +164,15 @@ The TA gets work as small tickets (half a day to two days), each with: what to b
 
 Rules that keep quality up:
 
-1. **Tests first for money and permissions.** Formulas and access rules get tests before the screens are built, like the 24 extra tests in this assessment.
+1. **Tests first for money and permissions.** Formulas and access rules get tests before the screens are built, like the 27 extra tests in this assessment.
 2. **CI must be green** before anything merges: tests, lint, type checks, the tenant-isolation suite.
 3. **A human reads every change.** Passing a build is not proof of correctness or security (Master Sheet B1 says the same).
 4. **AI never sees real data or secrets.** Fictional data in development; secrets only in the hosting secret store.
 5. **Every pull request says what AI wrote** and how it was checked.
 
 ## Preventing unauthorized changes to production
+
+![Release gates: pull request, tests, Lead review, owner approval, then production](docs/gates.svg)
 
 1. The owner owns the GitHub organization, the Replit workspace, the domain, the production database and every paid account. Developers use named accounts with two-factor sign-in; no shared passwords or codes.
 2. The main branch is protected: no direct pushes, every change by pull request, at least one approving review, CI must pass.
@@ -174,6 +184,8 @@ Rules that keep quality up:
 ## Bugs, missed deadlines and disagreements
 
 **Bugs.** Every bug gets a severity:
+
+![Bug severity levels and response times](docs/severity.svg)
 
 | Severity | Example | Response |
 |---|---|---|
@@ -199,6 +211,8 @@ Outside working hours, uptime and error alerts go to the Lead's phone, and a one
 ## Estimated monthly technical costs
 
 Approximate public list prices as I know them in October 2026. Every line needs a current price check before purchase. Lead and TA salaries are not included; outside people are in the one-time table.
+
+![Monthly and one-time technical costs](docs/costs.svg)
 
 ### While building (Phases 0 to 3)
 
@@ -267,6 +281,8 @@ Hourly rates are typical ranges for offshore and US freelance specialists and ne
 | Part-time QA tester (optional) | Around M2 and M4 releases | Extra manual testing on real devices before big releases. |
 
 ## Main technical challenges, risks and dependencies
+
+![The five main risks](docs/risks.svg)
 
 | Risk or dependency | Impact | How I would handle it |
 |---|---|---|
