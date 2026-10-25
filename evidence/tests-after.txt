@@ -1,0 +1,35 @@
+test_break_even_covers_dispatch_fee (test_edge_cases.FormulaTests.test_break_even_covers_dispatch_fee) ... ok
+test_dispatch_pct_is_on_a_0_to_100_scale (test_edge_cases.FormulaTests.test_dispatch_pct_is_on_a_0_to_100_scale) ... ok
+test_fuel_divides_miles_by_mpg (test_edge_cases.FormulaTests.test_fuel_divides_miles_by_mpg) ... ok
+test_loss_making_load_has_negative_profit_and_margin (test_edge_cases.FormulaTests.test_loss_making_load_has_negative_profit_and_margin) ... ok
+test_margin_is_profit_over_revenue_not_cost (test_edge_cases.FormulaTests.test_margin_is_profit_over_revenue_not_cost) ... ok
+test_no_dispatch_no_margin_means_break_even_equals_fixed_costs (test_edge_cases.FormulaTests.test_no_dispatch_no_margin_means_break_even_equals_fixed_costs) ... ok
+test_result_has_exactly_the_contract_fields (test_edge_cases.FormulaTests.test_result_has_exactly_the_contract_fields) ... ok
+test_suggested_rate_hits_net_margin_after_dispatch (test_edge_cases.FormulaTests.test_suggested_rate_hits_net_margin_after_dispatch) ... ok
+test_accepts_a_parsed_json_body_and_returns_serializable_numbers (test_edge_cases.JsonApiTests.test_accepts_a_parsed_json_body_and_returns_serializable_numbers) ... ok
+test_break_even_rate_gives_zero_profit (test_edge_cases.RoundTripTests.test_break_even_rate_gives_zero_profit) ... ok
+test_displayed_fields_always_add_up (test_edge_cases.RoundTripTests.test_displayed_fields_always_add_up) ... ok
+test_suggested_rate_meets_target_margin (test_edge_cases.RoundTripTests.test_suggested_rate_meets_target_margin) ... ok
+test_every_field_has_at_most_two_decimals (test_edge_cases.RoundingTests.test_every_field_has_at_most_two_decimals) ... ok
+test_float_inputs_do_not_leak_binary_error (test_edge_cases.RoundingTests.test_float_inputs_do_not_leak_binary_error) ... ok
+test_half_cent_rounds_up (test_edge_cases.RoundingTests.test_half_cent_rounds_up) ... ok
+test_dispatch_plus_margin_must_be_below_100 (test_edge_cases.ValidationTests.test_dispatch_plus_margin_must_be_below_100) ... ok
+test_each_money_field_and_miles_must_be_nonnegative (test_edge_cases.ValidationTests.test_each_money_field_and_miles_must_be_nonnegative) ... ok
+test_mpg_must_be_above_zero (test_edge_cases.ValidationTests.test_mpg_must_be_above_zero) ... ok
+test_nan_and_infinity_are_rejected (test_edge_cases.ValidationTests.test_nan_and_infinity_are_rejected) ... ok
+test_non_numbers_are_rejected_with_value_error (test_edge_cases.ValidationTests.test_non_numbers_are_rejected_with_value_error) ... ok
+test_percentages_must_be_0_to_below_100 (test_edge_cases.ValidationTests.test_percentages_must_be_0_to_below_100) ... ok
+test_zero_values_that_are_allowed (test_edge_cases.ValidationTests.test_zero_values_that_are_allowed) ... ok
+test_zero_revenue_and_zero_cost_is_zero_margin_not_a_crash (test_edge_cases.ZeroRevenueTests.test_zero_revenue_and_zero_cost_is_zero_margin_not_a_crash) ... ok
+test_zero_revenue_with_costs_uses_minus_100_sentinel (test_edge_cases.ZeroRevenueTests.test_zero_revenue_with_costs_uses_minus_100_sentinel) ... ok
+test_invalid_margin_rejected (test_profitability.ProfitabilityTests.test_invalid_margin_rejected) ... ok
+test_negative_expense_rejected (test_profitability.ProfitabilityTests.test_negative_expense_rejected) ... ok
+test_normal_load (test_profitability.ProfitabilityTests.test_normal_load) ... ok
+test_zero_mpg_rejected (test_profitability.ProfitabilityTests.test_zero_mpg_rejected) ... ok
+test_zero_revenue_margin (test_profitability.ProfitabilityTests.test_zero_revenue_margin) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.058s
+
+OK
+exit 0

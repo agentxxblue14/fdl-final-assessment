@@ -1,0 +1,49 @@
+test_invalid_margin_rejected (test_profitability.ProfitabilityTests.test_invalid_margin_rejected) ... ERROR
+test_negative_expense_rejected (test_profitability.ProfitabilityTests.test_negative_expense_rejected) ... FAIL
+test_normal_load (test_profitability.ProfitabilityTests.test_normal_load) ... FAIL
+test_zero_mpg_rejected (test_profitability.ProfitabilityTests.test_zero_mpg_rejected) ... FAIL
+test_zero_revenue_margin (test_profitability.ProfitabilityTests.test_zero_revenue_margin) ... ok
+
+======================================================================
+ERROR: test_invalid_margin_rejected (test_profitability.ProfitabilityTests.test_invalid_margin_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Judah-Applications\fdl-final-assessment\test_profitability.py", line 19, in test_invalid_margin_rejected
+    with self.assertRaises(ValueError):calculate_load(1000,100,4,10,100,0,10,0,100)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\Desktop\Judah-Applications\fdl-final-assessment\profitability.py", line 15, in calculate_load
+    suggested_rate = break_even_rate / (1 - desired_margin_pct / 100)
+                     ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ZeroDivisionError: float division by zero
+
+======================================================================
+FAIL: test_negative_expense_rejected (test_profitability.ProfitabilityTests.test_negative_expense_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Judah-Applications\fdl-final-assessment\test_profitability.py", line 17, in test_negative_expense_rejected
+    with self.assertRaises(ValueError):calculate_load(1000,100,4,10,-100,0,10,0,20)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_normal_load (test_profitability.ProfitabilityTests.test_normal_load)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Judah-Applications\fdl-final-assessment\test_profitability.py", line 7, in test_normal_load
+    self.assertAlmostEqual(r["fuel_cost"],200)
+AssertionError: 20000 != 200 within 7 places (19800 difference)
+
+======================================================================
+FAIL: test_zero_mpg_rejected (test_profitability.ProfitabilityTests.test_zero_mpg_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\Judah-Applications\fdl-final-assessment\test_profitability.py", line 15, in test_zero_mpg_rejected
+    with self.assertRaises(ValueError):calculate_load(1000,100,4,0,100,0,10,0,20)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.004s
+
+FAILED (failures=3, errors=1)
+exit 1
