@@ -54,7 +54,7 @@ def main():
     page = (HERE / "site_template.html").read_text(encoding="utf8")
     real = f.REAL
     cover_ms = "".join(
-        f'<g class="hero-sign" data-x="{300 + i * 195}">{f.signpost(300 + i * 195, 150, "M%d %s" % (i + 1, lab), f.d(day), 112 if i == 4 else 100, post=48 + (i % 2) * 22)}</g>'
+        f'<g class="hero-sign" data-x="{300 + i * 195}">{f.signpost(300 + i * 195, 150, "M%d %s" % (i + 1, lab), f.d(day), [100, 112, 112, 126, 132][i], post=48 + (i % 2) * 22)}</g>'
         for i, ((wk, day), lab) in enumerate(zip(real["milestones"], ["Pilot", "Version 1", "Tracking", "Back office", "Full platform"])))
     parts = {
         "/*DATA*/": json.dumps(data(), separators=(",", ":")),

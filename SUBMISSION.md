@@ -16,7 +16,7 @@ Before: 5 tests, 1 passing (by accident). After: **32 tests, all passing**, on P
 This repo has two parts:
 
 1. **The corrected calculator**: `profitability.py`, your original tests (unchanged), 27 new tests in `test_edge_cases.py`, and the test output in `evidence/`.
-2. **The plan, timeline and cost estimate for the whole platform**: [`PLAN.md`](PLAN.md), with the estimate model in [`plan/estimate_model.py`](plan/estimate_model.py). The drawings in `docs/` are generated from the same numbers by [`plan/figures.py`](plan/figures.py). An interactive version of both parts, with animated charts, is [`index.html`](index.html) (built by `plan/build_site.py`, also served on GitHub Pages).
+2. **The plan, timeline and cost estimate for the whole platform**: [`PLAN.md`](PLAN.md), with the estimate model in [`plan/estimate_model.py`](plan/estimate_model.py). The drawings in `docs/` are generated from the same numbers by [`plan/figures.py`](plan/figures.py). An interactive version of both parts, with animated charts, is [`index.html`](index.html) (built by `plan/build_site.py`, also live at https://fdl-platform-judah-rivera.vercel.app).
 
 The git history shows the work in order: the first commit is your files exactly as received, the next commits are the fix, the tests and the plan.
 
@@ -113,5 +113,5 @@ Remaining limitations, by design of the exercise:
 ## GitHub / Replit links
 
 - GitHub: https://github.com/agentxxblue14/fdl-final-assessment
-- Interactive version: https://agentxxblue14.github.io/fdl-final-assessment/
+- Interactive version: https://fdl-platform-judah-rivera.vercel.app
 - Replit: not used for this part. The challenge says to work only on the supplied files, and it runs with plain Python (`python -m unittest -v`), no packages needed.
